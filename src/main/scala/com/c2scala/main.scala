@@ -10,6 +10,8 @@ import org.antlr.runtime.tree.CommonTreeAdaptor;
 import org.antlr.runtime.tree.TreeAdaptor;
 import org.antlr.runtime.Token;
 import scala.collection.mutable.ListBuffer
+import java.util._
+import java.io._
 
 class MyListener extends CBaseListener {
   var isWithinStruct = false
@@ -42,7 +44,6 @@ class MyListener extends CBaseListener {
   }
   
   override def exitTypedefName(ctx: CParser.TypedefNameContext) = {
-    println("typedef read completed: " + ctx.Identifier())
     if (isWithinStruct) {
       if (specifierQualifierLevel == 1) {
         currentTypeName = ctx.Identifier().getText
@@ -103,12 +104,67 @@ class MyListener extends CBaseListener {
   }
 }
 
+class StreamGobbler(var is: InputStream, var gobblerType: String, var os: OutputStream ) extends Thread
+{   
+    def this(is: InputStream, gobblerType: String) = {
+        this(is, gobblerType, null)
+    }
+    
+    override def run() = {
+        try
+        {
+            var pw: PrintWriter = null
+            if (os != null)
+                pw = new PrintWriter(os)
+                
+            val isr = new InputStreamReader(is)
+            val br = new BufferedReader(isr)
+            var line: String = br.readLine()
+            while (line != null) {
+                if (pw != null)
+                    pw.println(line)
+                println(gobblerType + ">" + line)
+                line = br.readLine()
+            }
+            if (pw != null)
+                pw.flush();
+        } catch {
+          
+          case ioe: IOException =>
+            ioe.printStackTrace();  
+        }
+    }
+}
+
 object main {
     def main(arg: Array[String]) = {        
+      
+          val fos = new FileOutputStream("test.h");
+            val rt = Runtime.getRuntime();
+            val proc = rt.exec("cmd /c gcc -E -P ac_data.h > preprocessed_ac_data.h")
+            // any error message?
+            val errorGobbler = new 
+                StreamGobbler(proc.getErrorStream(), "ERROR");            
+            
+            // any output?
+            val outputGobbler = new 
+                StreamGobbler(proc.getInputStream(), "OUTPUT", fos);
+          
+
+          // kick them off
+            errorGobbler.start();
+            outputGobbler.start();
+                                    
+            // any error???
+            val exitVal = proc.waitFor();
+            println("ExitValue: " + exitVal);
+            fos.flush();
+            fos.close();  
+      
             val parser = new CParser(
                 new CommonTokenStream(
                         new CLexer(
-                                new ANTLRFileStream("C:\\Scala\\sandel_baseline\\src\\pre_ac_data.h"))));
+                                new ANTLRFileStream("preprocessed_ac_data.h"))));
 
             parser.setBuildParseTree(true);
 
@@ -118,6 +174,7 @@ object main {
             ParseTreeWalker.DEFAULT.walk(listener, ctx);            
       
             println("RESULTS: ")
-            listener.results.foreach(println)
+            val resultWriter = new PrintWriter(new FileOutputStream("ac_data.scala"))
+            listener.results.foreach{line => resultWriter.println(line); resultWriter.flush}
     }   
 }
