@@ -55,7 +55,9 @@ class MyListener extends CBaseListener {
     } else if (declarationHasStruct && !isWithinStruct) {
       var result = "case class " + ctx.Identifier() + "(\n"
       //structDeclarations.foreach(println)
-      result += structDeclarations.map("  " + _).reduce{_ + ",\n" + _}
+      if (!structDeclarations.isEmpty) {
+        result += structDeclarations.map("  " + _).reduce{_ + ",\n" + _}
+      }
       result += "\n)"
       results += result
     }
@@ -104,77 +106,40 @@ class MyListener extends CBaseListener {
   }
 }
 
-class StreamGobbler(var is: InputStream, var gobblerType: String, var os: OutputStream ) extends Thread
-{   
-    def this(is: InputStream, gobblerType: String) = {
-        this(is, gobblerType, null)
-    }
-    
-    override def run() = {
-        try
-        {
-            var pw: PrintWriter = null
-            if (os != null)
-                pw = new PrintWriter(os)
-                
-            val isr = new InputStreamReader(is)
-            val br = new BufferedReader(isr)
-            var line: String = br.readLine()
-            while (line != null) {
-                if (pw != null)
-                    pw.println(line)
-                println(gobblerType + ">" + line)
-                line = br.readLine()
-            }
-            if (pw != null)
-                pw.flush();
-        } catch {
-          
-          case ioe: IOException =>
-            ioe.printStackTrace();  
-        }
-    }
-}
-
 object main {
     def main(arg: Array[String]) = {        
       
-          val fos = new FileOutputStream("test.h");
-            val rt = Runtime.getRuntime();
-            val proc = rt.exec("cmd /c gcc -E -P ac_data.h > preprocessed_ac_data.h")
-            // any error message?
-            val errorGobbler = new 
-                StreamGobbler(proc.getErrorStream(), "ERROR");            
-            
-            // any output?
-            val outputGobbler = new 
-                StreamGobbler(proc.getInputStream(), "OUTPUT", fos);
-          
-
-          // kick them off
-            errorGobbler.start();
-            outputGobbler.start();
-                                    
-            // any error???
-            val exitVal = proc.waitFor();
-            println("ExitValue: " + exitVal);
-            fos.flush();
-            fos.close();  
-      
-            val parser = new CParser(
-                new CommonTokenStream(
-                        new CLexer(
-                                new ANTLRFileStream("preprocessed_ac_data.h"))));
-
-            parser.setBuildParseTree(true);
-
-            // This line prints the error
-            val ctx = parser.compilationUnit();
-            val listener = new MyListener();
-            ParseTreeWalker.DEFAULT.walk(listener, ctx);            
-      
-            println("RESULTS: ")
-            val resultWriter = new PrintWriter(new FileOutputStream("ac_data.scala"))
-            listener.results.foreach{line => resultWriter.println(line); resultWriter.flush}
+      val cCodeDir = new File("C:\\Scala\\sandel_baseline\\src")
+      for (cCodeFile <- cCodeDir.listFiles().filter(_.getName.endsWith(".h"))) {
+        val fileName = cCodeFile.getName
+        val fileNameWithoutExtension = cCodeFile.getName.substring(0, cCodeFile.getName.lastIndexOf('.'))
+        val rt = Runtime.getRuntime();
+        val proc = rt.exec("cmd /c gcc -E -P " + cCodeFile.getAbsolutePath + " > preprocessed_" + fileName)
+        
+        // any error???
+        val exitVal = proc.waitFor();
+        println("ExitValue: " + exitVal);
+  
+        val parser = new CParser(
+            new CommonTokenStream(
+                    new CLexer(
+                            new ANTLRFileStream("preprocessed_" + fileName))));
+  
+        parser.setBuildParseTree(true);
+  
+        // This line prints the error
+        val ctx = parser.compilationUnit();
+        val listener = new MyListener();
+        ParseTreeWalker.DEFAULT.walk(listener, ctx); 
+  
+        println("RESULTS: ")
+        val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileNameWithoutExtension + ".scala"))
+        listener.results.foreach{line => resultWriter.println(line)}
+        resultWriter.flush
+        resultWriter.close
+        
+        val preprocessedFile = new File("preprocessed_" + fileName)
+        preprocessedFile.delete()
+      }
     }   
 }
