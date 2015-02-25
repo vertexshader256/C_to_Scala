@@ -12,6 +12,7 @@ import org.antlr.runtime.Token;
 import scala.collection.mutable.ListBuffer
 import java.util._
 import java.io._
+import scala.io.Source
 
 class MyListener extends CBaseListener {
   var isWithinStruct = false
@@ -21,7 +22,20 @@ class MyListener extends CBaseListener {
   var specifierQualifierLevel = 0
   var currentTypeName = ""
   val results = ListBuffer[String]()
+  var isTypeEnum = false
+  var isWithinFunction = false
+  
   var latestStorageSpecifier = ""
+  var latestTypeSpecifier = ""
+  
+  def convertTypeSpecifier(typeSpecifier: String) = typeSpecifier match {
+    case "char" => "Char"
+    case "float" => "Float"
+    case "long" => "Long"
+    case "short" => "Short"
+    case "int" => "Integer"
+    case _ => typeSpecifier
+  }
   
   override def enterSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
     specifierQualifierLevel += 1
@@ -37,6 +51,18 @@ class MyListener extends CBaseListener {
   
   override def exitStructDeclarationList(ctx: CParser.StructDeclarationListContext) = {
     //isWithinStruct = false
+  }
+  
+  override def enterInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
+    isWithinFunction = true
+  }
+  
+  override def exitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
+    //isWithinStruct = false
+  }
+  
+  override def enterEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
+    isTypeEnum = true
   }
   
   override def enterTypedefName(ctx: CParser.TypedefNameContext) = {
@@ -60,6 +86,8 @@ class MyListener extends CBaseListener {
       }
       result += "\n)"
       results += result
+    } else if (!isTypeEnum && !isWithinFunction) {
+      results += "type " + ctx.Identifier() + " = " + convertTypeSpecifier(latestTypeSpecifier) + "\n"
     }
   }
   
@@ -69,17 +97,18 @@ class MyListener extends CBaseListener {
   
   override def exitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
    // println("EXIT TYPE ")
+    latestTypeSpecifier = ctx.getText
   }
   
   override def enterDeclaration(ctx: CParser.DeclarationContext) = {
-    //println("ENTER DECLARATION ")
     latestStorageSpecifier = ""
     declarationHasStruct = false
+    isTypeEnum = false
+    isWithinFunction = false
   }
   
   override def exitDeclaration(ctx: CParser.DeclarationContext) = {
     declarationHasStruct = false
-    //println("EXIT DECLARATION " )
   }
   
   override def enterStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
@@ -107,14 +136,48 @@ class MyListener extends CBaseListener {
 }
 
 object main {
+  
+    def writeToFile(file: String, contents: String): Unit = {
+      val pw = new java.io.PrintWriter(new File(file))
+      try pw.write(contents) finally pw.close()
+    }
+  
     def main(arg: Array[String]) = {        
       
       val cCodeDir = new File("C:\\Scala\\sandel_baseline\\src")
+      val convertedCodeDir = new File("convertedCode")
+      if (!convertedCodeDir.exists) {
+        convertedCodeDir.mkdir
+      } else {
+        convertedCodeDir.listFiles().foreach(_.delete)
+      }
+      
+      val beforePreprocessingDir = new File("beforePre")
+      if (!beforePreprocessingDir.exists) {
+        beforePreprocessingDir.mkdir
+      } else {
+        beforePreprocessingDir.listFiles().foreach(_.delete)
+      }
+      
       for (cCodeFile <- cCodeDir.listFiles().filter(_.getName.endsWith(".h"))) {
         val fileName = cCodeFile.getName
         val fileNameWithoutExtension = cCodeFile.getName.substring(0, cCodeFile.getName.lastIndexOf('.'))
+        
+        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + fileName)
+        val pw = new java.io.PrintWriter(beforePreFile)
+        println(beforePreFile.getAbsolutePath)
+        try {
+          for (line <- Source.fromFile(cCodeFile.getAbsolutePath, "ISO-8859-1").getLines()) {
+            if (!line.contains("#include")) {
+              pw.println(line)
+            }
+          } 
+        } finally {
+          pw.close
+        }
+        
         val rt = Runtime.getRuntime();
-        val proc = rt.exec("cmd /c gcc -E -P " + cCodeFile.getAbsolutePath + " > preprocessed_" + fileName)
+        val proc = rt.exec("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + fileName)
         
         // any error???
         val exitVal = proc.waitFor();
@@ -133,13 +196,19 @@ object main {
         ParseTreeWalker.DEFAULT.walk(listener, ctx); 
   
         println("RESULTS: ")
+        
         val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileNameWithoutExtension + ".scala"))
+        
+        resultWriter.println("package convertedCode\n\n")
+        resultWriter.println("object " + fileNameWithoutExtension + " {\n")
         listener.results.foreach{line => resultWriter.println(line)}
+        resultWriter.println("}\n")
+        
         resultWriter.flush
         resultWriter.close
         
         val preprocessedFile = new File("preprocessed_" + fileName)
-        preprocessedFile.delete()
+        //preprocessedFile.delete()
       }
     }   
 }
