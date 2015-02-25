@@ -16,4 +16,8 @@ dist
 /.settings
 /bin/
 /app/assets/mops
+/preprocessed_*
+/convertedCode
+/beforePre
+
 

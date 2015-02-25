@@ -24,7 +24,9 @@ class MyListener extends CBaseListener {
   val results = ListBuffer[String]()
   var isTypeEnum = false
   var isWithinFunction = false
+  var hasTypedefName = false
   
+  val typedefNames = ListBuffer[String]()
   var latestStorageSpecifier = ""
   var latestTypeSpecifier = ""
   
@@ -65,6 +67,26 @@ class MyListener extends CBaseListener {
     isTypeEnum = true
   }
   
+  override def enterDeclarationSpecifiers(ctx: CParser.DeclarationSpecifiersContext) = {
+    
+  }
+  
+  override def exitDeclarationSpecifiers(ctx: CParser.DeclarationSpecifiersContext) = {
+    if (declarationHasStruct && !isWithinStruct) {
+      var result = "case class " + typedefNames(0) + "(\n"
+      //structDeclarations.foreach(println)
+      if (!structDeclarations.isEmpty) {
+        result += structDeclarations.map("  " + _).reduce{_ + ",\n" + _}
+      }
+      result += "\n)"
+      results += result
+    } else if (!isTypeEnum && !isWithinFunction && typedefNames.size == 1) {
+      results += "type " + typedefNames(0) + " = " + convertTypeSpecifier(latestTypeSpecifier) + "\n"
+    } else if (!isTypeEnum && !isWithinFunction && typedefNames.size == 2) {
+      results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
+    }
+  }
+  
   override def enterTypedefName(ctx: CParser.TypedefNameContext) = {
     
   }
@@ -74,30 +96,24 @@ class MyListener extends CBaseListener {
       if (specifierQualifierLevel == 1) {
         currentTypeName = ctx.Identifier().getText
       } else if (specifierQualifierLevel == 2) {
-        println(ctx.Identifier().getText)
         structDeclarations += "var " + ctx.Identifier().getText + ": " + currentTypeName
-        println(ctx.Identifier().getText + ": " + currentTypeName)
       }
-    } else if (declarationHasStruct && !isWithinStruct) {
-      var result = "case class " + ctx.Identifier() + "(\n"
-      //structDeclarations.foreach(println)
-      if (!structDeclarations.isEmpty) {
-        result += structDeclarations.map("  " + _).reduce{_ + ",\n" + _}
-      }
-      result += "\n)"
-      results += result
-    } else if (!isTypeEnum && !isWithinFunction) {
-      results += "type " + ctx.Identifier() + " = " + convertTypeSpecifier(latestTypeSpecifier) + "\n"
+    } else {
+      typedefNames += ctx.Identifier().getText
     }
+    
+    hasTypedefName = true
   }
   
   override def enterTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
    // println("ENTER TYPE ")
+    hasTypedefName = false
   }
   
   override def exitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
    // println("EXIT TYPE ")
-    latestTypeSpecifier = ctx.getText
+    if (!hasTypedefName)
+      latestTypeSpecifier = ctx.getText
   }
   
   override def enterDeclaration(ctx: CParser.DeclarationContext) = {
@@ -105,6 +121,7 @@ class MyListener extends CBaseListener {
     declarationHasStruct = false
     isTypeEnum = false
     isWithinFunction = false
+    typedefNames.clear
   }
   
   override def exitDeclaration(ctx: CParser.DeclarationContext) = {
