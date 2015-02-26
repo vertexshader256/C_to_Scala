@@ -9,6 +9,7 @@ import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeAdaptor;
 import org.antlr.runtime.tree.TreeAdaptor;
 import org.antlr.runtime.Token;
+import scala.collection.mutable.ListBuffer
 import java.util._
 import java.io._
 import scala.io.Source
@@ -40,6 +41,7 @@ object main {
       for (cCodeFile <- cCodeDir.listFiles().filter(_.getName.endsWith(".h"))) {
         val fileName = cCodeFile.getName
         val fileNameWithoutExtension = cCodeFile.getName.substring(0, cCodeFile.getName.lastIndexOf('.'))
+        val includeFiles = new ListBuffer[String]()
         
         val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + fileName)
         val pw = new java.io.PrintWriter(beforePreFile)
@@ -48,6 +50,9 @@ object main {
           for (line <- Source.fromFile(cCodeFile.getAbsolutePath, "ISO-8859-1").getLines()) {
             if (!line.contains("#include")) {
               pw.println(line)
+            } else if (line.contains("\"")){
+              // extract file name, substract .h extension
+              includeFiles += line.subSequence(line.indexOf("\"") + 1, line.size - 3).toString
             }
           } 
         } finally {
@@ -78,6 +83,7 @@ object main {
         val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileNameWithoutExtension + ".scala"))
         
         resultWriter.println("package convertedCode\n\n")
+        includeFiles.foreach{x => resultWriter.println("import " + x)}
         resultWriter.println("object " + fileNameWithoutExtension + " {\n")
         listener.results.foreach{line => resultWriter.println(line)}
         resultWriter.println("}\n")

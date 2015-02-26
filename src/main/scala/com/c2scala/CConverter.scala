@@ -93,11 +93,9 @@ class CConverter extends CBaseListener {
   
   override def exitTypedefName(ctx: CParser.TypedefNameContext) = {
     if (isWithinStruct) {
-      if (specifierQualifierLevel == 1) {
-        currentTypeName = ctx.Identifier().getText
-      } else if (specifierQualifierLevel == 2) {
-        structDeclarations += "var " + convertTypeName(ctx.Identifier().getText, currentTypeName) + ": " + currentTypeName
-      }
+      if (specifierQualifierLevel == 2 && currentTypeName != "") {
+        structDeclarations += "var " + convertTypeName(ctx.Identifier().getText, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName)
+      } 
     } else {
       typedefNames += ctx.Identifier().getText
     }
@@ -114,10 +112,16 @@ class CConverter extends CBaseListener {
    // println("EXIT TYPE ")
     if (!hasTypedefName)
       latestTypeSpecifier = ctx.getText
+      
+      if (specifierQualifierLevel == 1) {
+        currentTypeName = ctx.getText
+      } 
   }
   
   override def enterDeclaration(ctx: CParser.DeclarationContext) = {
     latestStorageSpecifier = ""
+    latestTypeSpecifier = ""
+    currentTypeName = ""
     declarationHasStruct = false
     isTypeEnum = false
     isWithinFunction = false
