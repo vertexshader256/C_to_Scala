@@ -2,6 +2,8 @@ package com.c2scala
 
 import scala.collection.mutable.ListBuffer
 
+
+
 class CConverter extends CBaseListener {
   var isWithinStruct = false
   var declarationHasStruct = false
@@ -17,6 +19,16 @@ class CConverter extends CBaseListener {
   val typedefNames = ListBuffer[String]()
   var latestStorageSpecifier = ""
   var latestTypeSpecifier = ""
+  var latestDirectDeclarator = ""
+  var isArrayTypedef = false
+  
+  def convertTypeName(varName: String, typeName: String) = {
+    if (varName == "type") {
+      typeName.toLowerCase()
+    } else {
+      varName
+    }
+  }
   
   def convertTypeSpecifier(typeSpecifier: String) = typeSpecifier match {
     case "char" => "Char"
@@ -48,7 +60,19 @@ class CConverter extends CBaseListener {
   }
   
   override def exitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
-    //isWithinStruct = false
+    
+  }
+  
+  override def enterDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
+    if (latestStorageSpecifier == "typedef") {
+      isArrayTypedef = true
+      latestDirectDeclarator = ctx.getText
+      println(latestDirectDeclarator)
+    }
+    
+  }
+  
+  override def exitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
   }
   
   override def enterEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
@@ -60,21 +84,7 @@ class CConverter extends CBaseListener {
   }
   
   override def exitDeclarationSpecifiers(ctx: CParser.DeclarationSpecifiersContext) = {
-    if (declarationHasStruct && !isWithinStruct) {
-      var result = "case class " + typedefNames(0) + "(\n"
-      //structDeclarations.foreach(println)
-      if (!structDeclarations.isEmpty) {
-        result += structDeclarations.map("  " + _).reduce{_ + ",\n" + _}
-      }
-      result += "\n)"
-      results += result
-    } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier != "extern") {
-      if (typedefNames.size == 1) {
-        results += "type " + typedefNames(0) + " = " + convertTypeSpecifier(latestTypeSpecifier) + "\n"
-      } else if (typedefNames.size == 2) {
-        results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
-      }
-    }
+    
   }
   
   override def enterTypedefName(ctx: CParser.TypedefNameContext) = {
@@ -86,7 +96,7 @@ class CConverter extends CBaseListener {
       if (specifierQualifierLevel == 1) {
         currentTypeName = ctx.Identifier().getText
       } else if (specifierQualifierLevel == 2) {
-        structDeclarations += "var " + ctx.Identifier().getText + ": " + currentTypeName
+        structDeclarations += "var " + convertTypeName(ctx.Identifier().getText, currentTypeName) + ": " + currentTypeName
       }
     } else {
       typedefNames += ctx.Identifier().getText
@@ -111,10 +121,29 @@ class CConverter extends CBaseListener {
     declarationHasStruct = false
     isTypeEnum = false
     isWithinFunction = false
+    isArrayTypedef = false
     typedefNames.clear
   }
   
   override def exitDeclaration(ctx: CParser.DeclarationContext) = {
+    if (declarationHasStruct && !isWithinStruct) {
+      var result = "case class " + typedefNames(0) + "(\n"
+      //structDeclarations.foreach(println)
+      if (!structDeclarations.isEmpty) {
+        result += structDeclarations.map("  " + _).reduce{_ + ",\n" + _}
+      }
+      result += "\n)"
+      results += result
+    } else if (isArrayTypedef && typedefNames.size == 1) {
+      results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+    } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier != "extern") {
+      if (typedefNames.size == 1) {
+        results += "type " + typedefNames(0) + " = " + convertTypeSpecifier(latestTypeSpecifier) + "\n"
+      } else if (typedefNames.size == 2) {
+        results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
+      }
+    }
+    
     declarationHasStruct = false
   }
   
