@@ -21,6 +21,9 @@ class CConverter extends CBaseListener {
   var latestTypeSpecifier = ""
   var latestDirectDeclarator = ""
   var isArrayTypedef = false
+  val enumerations = ListBuffer[enumerator]()
+  
+  case class enumerator(constant: String, expression: String)
   
   def convertTypeName(varName: String, typeName: String) = {
     if (varName == "type") {
@@ -45,6 +48,12 @@ class CConverter extends CBaseListener {
   
   override def exitSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
     specifierQualifierLevel -= 1
+  }
+  
+  override def enterEnumerator(ctx: CParser.EnumeratorContext) = {
+    if (ctx.enumerationConstant() != null && ctx.constantExpression() != null) {
+      enumerations += enumerator(ctx.enumerationConstant().getText, ctx.constantExpression().getText)
+    }
   }
   
   override def enterStructDeclarationList(ctx: CParser.StructDeclarationListContext) = {
@@ -127,6 +136,7 @@ class CConverter extends CBaseListener {
     isWithinFunction = false
     isArrayTypedef = false
     typedefNames.clear
+    enumerations.clear
   }
   
   override def exitDeclaration(ctx: CParser.DeclarationContext) = {
@@ -146,6 +156,12 @@ class CConverter extends CBaseListener {
       } else if (typedefNames.size == 2) {
         results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
       }
+    } else if (isTypeEnum && !enumerations.isEmpty) {
+      results += "case class " + typedefNames(0) + "(value: Integer)"
+      enumerations.foreach{enum =>
+        results += ("case object " + enum.constant + " extends " + typedefNames(0) + "(" + enum.expression + ")")
+      }
+      //results += "\n"
     }
     
     declarationHasStruct = false
