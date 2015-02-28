@@ -20,7 +20,7 @@ class CConverter extends CBaseListener {
   var latestStorageSpecifier = ""
   var latestTypeSpecifier = ""
   var latestDirectDeclarator = ""
-  var isArrayTypedef = false
+  var isArray = false
   val enumerations = ListBuffer[enumerator]()
   
   case class enumerator(constant: String, expression: String)
@@ -73,12 +73,8 @@ class CConverter extends CBaseListener {
   }
   
   override def enterDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-    if (latestStorageSpecifier == "typedef") {
-      isArrayTypedef = true
-      latestDirectDeclarator = ctx.getText
-      println(latestDirectDeclarator)
-    }
-    
+    isArray = true
+    latestDirectDeclarator = ctx.getText
   }
   
   override def exitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
@@ -104,7 +100,9 @@ class CConverter extends CBaseListener {
     if (isWithinStruct) {
       if (specifierQualifierLevel == 2 && currentTypeName != "") {
         structDeclarations += "var " + convertTypeName(ctx.Identifier().getText, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName)
-      } 
+      } else if (isArray) {
+        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" //type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+      }
     } else {
       typedefNames += ctx.Identifier().getText
     }
@@ -118,7 +116,6 @@ class CConverter extends CBaseListener {
   }
   
   override def exitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
-   // println("EXIT TYPE ")
     if (!hasTypedefName)
       latestTypeSpecifier = ctx.getText
       
@@ -134,7 +131,7 @@ class CConverter extends CBaseListener {
     declarationHasStruct = false
     isTypeEnum = false
     isWithinFunction = false
-    isArrayTypedef = false
+    isArray = false
     typedefNames.clear
     enumerations.clear
   }
@@ -148,7 +145,7 @@ class CConverter extends CBaseListener {
       }
       result += "\n)"
       results += result
-    } else if (isArrayTypedef && typedefNames.size == 1) {
+    } else if (isArray && typedefNames.size == 1) {
       results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
     } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier != "extern") {
       if (typedefNames.size == 1) {
@@ -161,7 +158,6 @@ class CConverter extends CBaseListener {
       enumerations.foreach{enum =>
         results += ("case object " + enum.constant + " extends " + typedefNames(0) + "(" + enum.expression + ")")
       }
-      //results += "\n"
     }
     
     declarationHasStruct = false

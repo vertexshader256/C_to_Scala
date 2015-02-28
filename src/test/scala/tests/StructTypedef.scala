@@ -41,4 +41,31 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
                                                                         "var lon: LATLON",
                                                                         ")"))
   }
+  
+  "A typedef struct with an array" should "convert correctly" in {
+    val name = System.nanoTime
+    
+    val test = "typedef struct {\n" +
+      "LATLON lat[2048] ;\n" +
+      "LATLON lon ;\n" +
+      "} LL;"
+    
+    val parser = new CParser(
+            new CommonTokenStream(
+                    new CLexer(
+                            new ANTLRInputStream(test))));
+  
+    parser.setBuildParseTree(true);
+
+    // This line prints the error
+    val ctx = parser.compilationUnit();
+    val listener = new CConverter();
+    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
+
+    println("here: " + listener.results(0).trim)
+    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("case class LL(",
+                                                                        "var lat: Array[LATLON],",
+                                                                        "var lon: LATLON",
+                                                                        ")"))
+  }
 }
