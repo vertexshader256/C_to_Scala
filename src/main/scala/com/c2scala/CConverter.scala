@@ -154,9 +154,9 @@ class CConverter extends CBaseListener {
         results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
       }
     } else if (isTypeEnum && !enumerations.isEmpty) {
-      results += "case class " + typedefNames(0) + "(value: Integer)"
+      results += "type " + typedefNames(0) + " = Int"
       enumerations.foreach{enum =>
-        results += ("case object " + enum.constant + " extends " + typedefNames(0) + "(" + enum.expression + ")")
+        results += ("val " + enum.constant + ": " + typedefNames(0) + " = " + enum.expression)
       }
     }
     

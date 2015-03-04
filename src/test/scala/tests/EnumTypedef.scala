@@ -35,9 +35,16 @@ class EnumTypedef extends FlatSpec with ShouldMatchers {
     val listener = new CConverter();
     ParseTreeWalker.DEFAULT.walk(listener, ctx); 
 
+    object WeekDay extends Enumeration {
+    type WeekDay = Value
+    val Mon, Tue, Wed, Thu, Fri, Sat, Sun = Value
+  }
+  import WeekDay._
+    
     println("here: " + listener.results(0).trim)
-    listener.results.map(_.trim).filter(_.size > 0) should equal(Array("case class OBSTACLE_TYPE(value: Integer)",
-                                                                       "case object LINE_TYPE extends OBSTACLE_TYPE(0x00000001)",
-                                                                       "case object POINT_TYPE extends OBSTACLE_TYPE(0x00000002)"))
+    listener.results.map(_.trim).filter(_.size > 0) should equal(Array("type OBSTACLE_TYPE = Int",
+                                                                       "val LINE_TYPE: OBSTACLE_TYPE = 0x00000001",
+                                                                       "val POINT_TYPE: OBSTACLE_TYPE = 0x00000002"
+                                                                       ))
   }
 }
