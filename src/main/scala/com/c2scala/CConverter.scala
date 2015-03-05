@@ -20,9 +20,13 @@ class CConverter extends CBaseListener {
   var latestStorageSpecifier = ""
   var latestTypeSpecifier = ""
   var latestDirectDeclarator = ""
+  
   var latestArraySize = 0
   var isArray = false
   val enumerations = ListBuffer[enumerator]()
+  
+  var latestStructDecName = ""
+  var islatestStructDecArray = false
   
   case class enumerator(constant: String, expression: String)
   
@@ -63,24 +67,13 @@ class CConverter extends CBaseListener {
     }
   }
   
-  override def enterStructDeclarationList(ctx: CParser.StructDeclarationListContext) = {
-    
-  }
-  
-  override def exitStructDeclarationList(ctx: CParser.StructDeclarationListContext) = {
-    //isWithinStruct = false
-  }
-  
   override def enterInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
     isWithinFunction = true
   }
   
-  override def exitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
-    
-  }
-  
   override def enterDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     isArray = true
+    islatestStructDecArray = true
     latestDirectDeclarator = ctx.getText
   }
   
@@ -95,42 +88,34 @@ class CConverter extends CBaseListener {
       }
     }
   }
-  
-  override def exitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-  }
-  
+
   override def enterEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
     isTypeEnum = true
   }
-  
-  override def enterDeclarationSpecifiers(ctx: CParser.DeclarationSpecifiersContext) = {
-    
-  }
-  
-  override def exitDeclarationSpecifiers(ctx: CParser.DeclarationSpecifiersContext) = {
-    
-  }
-  
-  override def enterTypedefName(ctx: CParser.TypedefNameContext) = {
-    
-  }
-  
+   
   override def exitTypedefName(ctx: CParser.TypedefNameContext) = {
-    if (isWithinStruct) {
-      if (specifierQualifierLevel == 2 && currentTypeName != "") {
-        structDeclarations += "var " + convertTypeName(ctx.Identifier().getText, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName) + " = " + getTypeDefault(currentTypeName)
-      } else if (isArray) {
-        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeName) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-      }
-    } else {
+    if (!isWithinStruct) {
       typedefNames += ctx.Identifier().getText
     }
     
     hasTypedefName = true
+    latestStructDecName = ctx.Identifier().getText
+  }
+  
+  override def enterStructDeclaration(ctx: CParser.StructDeclarationContext) = {
+    latestStructDecName = ""
+    islatestStructDecArray = false
+  }
+  
+  override def exitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
+      if (islatestStructDecArray) {
+        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeName) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+      } else if (currentTypeName != "") {
+        structDeclarations += "var " + convertTypeName(latestStructDecName, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName) + " = " + getTypeDefault(currentTypeName)
+      }
   }
   
   override def enterTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
-   // println("ENTER TYPE ")
     hasTypedefName = false
   }
   
@@ -183,17 +168,13 @@ class CConverter extends CBaseListener {
   }
   
   override def enterStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
-    //println("ENTERING STRUCT ")
     isWithinStruct = true
     declarationHasStruct = true
     structDeclarations.clear
   }
   
   override def exitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
-   // println("LEAVING STRUCT ")
     isWithinStruct = false
-    var structResult = ""
-    
   }
   
   override def enterStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
