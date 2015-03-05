@@ -96,30 +96,30 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
                                                                         "}"))
   }
   
-//  "A simple typedef with a pointer" should "convert correctly" in {
-//    val name = System.nanoTime
-//    
-//    val test = "typedef struct {\n" +
-//      "LATLON lat ;\n" +
-//      "LATLON *lon ;\n" +
-//      "} LL;"
-//    
-//    val parser = new CParser(
-//            new CommonTokenStream(
-//                    new CLexer(
-//                            new ANTLRInputStream(test))));
-//  
-//    parser.setBuildParseTree(true);
-//
-//    // This line prints the error
-//    val ctx = parser.compilationUnit();
-//    val listener = new CConverter();
-//    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
-//
-//    println("here: " + listener.results(0).trim)
-//    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("class LL {",
-//                                                                        "var lat: LATLON = null",
-//                                                                        "var lon: LATLON = Array()",
-//                                                                        "}"))
-//  }
+  "A simple typedef with a pointer" should "convert correctly" in {
+    val name = System.nanoTime
+    
+    val test = "typedef struct {\n" +
+      "LATLON lat ;\n" +
+      "LATLON *lon ;\n" +
+      "} LL;"
+    
+    val parser = new CParser(
+            new CommonTokenStream(
+                    new CLexer(
+                            new ANTLRInputStream(test))));
+  
+    parser.setBuildParseTree(true);
+
+    // This line prints the error
+    val ctx = parser.compilationUnit();
+    val listener = new CConverter();
+    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
+
+    println("here: " + listener.results(0).trim)
+    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("class LL {",
+                                                                        "var lat: LATLON = null",
+                                                                        "var lon: Array[LATLON] = null",
+                                                                        "}"))
+  }
 }

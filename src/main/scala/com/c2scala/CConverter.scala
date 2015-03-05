@@ -108,8 +108,10 @@ class CConverter extends CBaseListener {
   }
   
   override def exitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
-      if (islatestStructDecArray) {
+      if (islatestStructDecArray && latestArraySize != 0) {
         structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeName) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+      } else if (islatestStructDecArray && latestArraySize == 0) {
+        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
       } else if (currentTypeName != "") {
         structDeclarations += "var " + convertTypeName(latestStructDecName, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName) + " = " + getTypeDefault(currentTypeName)
       }
