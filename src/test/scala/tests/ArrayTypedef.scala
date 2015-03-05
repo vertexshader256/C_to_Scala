@@ -16,21 +16,7 @@ import org.antlr.runtime.Token;
 class ArrayTypedefInt extends FlatSpec with ShouldMatchers {
 
   "An array typedef conversion" should "convert correctly" in {
-    val name = System.nanoTime
-    
-    val parser = new CParser(
-            new CommonTokenStream(
-                    new CLexer(
-                            new ANTLRInputStream("typedef U32 OBSTACLE_LIST[(2048)];"))));
-  
-    parser.setBuildParseTree(true);
 
-    // This line prints the error
-    val ctx = parser.compilationUnit();
-    val listener = new CConverter();
-    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
-
-    println("fuck: " + listener.results(0).trim)
-    listener.results(0).trim should equal("type OBSTACLE_LIST = Array[U32]")
+    convertedToScala("typedef U32 OBSTACLE_LIST[(2048)];").head should equal("type OBSTACLE_LIST = Array[U32]")
   }
 }

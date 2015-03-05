@@ -16,20 +16,7 @@ import org.antlr.runtime.Token;
 class DualPrimitiveTypedefInt extends FlatSpec with ShouldMatchers {
 
   "A simple typedef conversion" should "convert correctly" in {
-    val name = System.nanoTime
-    
-    val parser = new CParser(
-            new CommonTokenStream(
-                    new CLexer(
-                            new ANTLRInputStream("typedef unsigned int LATLON;"))));
-  
-    parser.setBuildParseTree(true);
 
-    // This line prints the error
-    val ctx = parser.compilationUnit();
-    val listener = new CConverter();
-    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
-
-    listener.results(0).trim should equal("type LATLON = Integer")
+    convertedToScala("typedef unsigned int LATLON;").head should equal("type LATLON = Integer")
   }
 }

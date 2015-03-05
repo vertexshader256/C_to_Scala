@@ -23,22 +23,9 @@ class StructTypedefWithPrimitive extends FlatSpec with ShouldMatchers {
       "int lon ;\n" +
       "} LL;"
     
-    val parser = new CParser(
-            new CommonTokenStream(
-                    new CLexer(
-                            new ANTLRInputStream(test))));
-  
-    parser.setBuildParseTree(true);
-
-    // This line prints the error
-    val ctx = parser.compilationUnit();
-    val listener = new CConverter();
-    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
-
-    println("here: " + listener.results(0).trim)
-    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("class LL {",
-                                                                        "var lat: Integer = 0",
-                                                                        "var lon: Integer = 0",
-                                                                        "}"))
+    convertedToScala(test) should equal(Array("class LL {",
+                                              "var lat: Integer = 0",
+                                              "var lon: Integer = 0",
+                                              "}"))
   }
 }

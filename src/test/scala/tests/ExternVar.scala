@@ -16,20 +16,7 @@ import org.antlr.runtime.Token;
 class ExternVar extends FlatSpec with ShouldMatchers {
 
   "A simple typedef conversion" should "convert correctly" in {
-    val name = System.nanoTime
 
-    val parser = new CParser(
-            new CommonTokenStream(
-                    new CLexer(
-                            new ANTLRInputStream("extern int ta_cm_upd;"))));
-  
-    parser.setBuildParseTree(true);
-
-    // This line prints the error
-    val ctx = parser.compilationUnit();
-    val listener = new CConverter();
-    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
-
-    listener.results.size should equal(0)
+    convertedToScala("extern int ta_cm_upd;").isEmpty should equal(true)
   }
 }

@@ -22,21 +22,8 @@ class StructTypedefWithTypeVar extends FlatSpec with ShouldMatchers {
     "OBSTACLE_TYPE type;\n" +
     "} POINT_OBSTACLE;"
     
-    val parser = new CParser(
-            new CommonTokenStream(
-                    new CLexer(
-                            new ANTLRInputStream(test))));
-  
-    parser.setBuildParseTree(true);
-
-    // This line prints the error
-    val ctx = parser.compilationUnit();
-    val listener = new CConverter();
-    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
-
-    println("here: " + listener.results(0).trim)
-    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("class POINT_OBSTACLE {",
-                                                                        "var obstacle_type: OBSTACLE_TYPE = null",
-                                                                        "}"))
+    convertedToScala(test) should equal(Array("class POINT_OBSTACLE {",
+                                              "var obstacle_type: OBSTACLE_TYPE = null",
+                                              "}"))
   }
 }
