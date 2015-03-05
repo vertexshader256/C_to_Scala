@@ -35,8 +35,8 @@ class StructTypedefWithTypeVar extends FlatSpec with ShouldMatchers {
     ParseTreeWalker.DEFAULT.walk(listener, ctx); 
 
     println("here: " + listener.results(0).trim)
-    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("case class POINT_OBSTACLE(",
-                                                                        "var obstacle_type: OBSTACLE_TYPE",
-                                                                        ")"))
+    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("class POINT_OBSTACLE {",
+                                                                        "var obstacle_type: OBSTACLE_TYPE = null",
+                                                                        "}"))
   }
 }

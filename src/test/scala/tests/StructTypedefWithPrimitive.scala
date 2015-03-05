@@ -36,9 +36,9 @@ class StructTypedefWithPrimitive extends FlatSpec with ShouldMatchers {
     ParseTreeWalker.DEFAULT.walk(listener, ctx); 
 
     println("here: " + listener.results(0).trim)
-    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("case class LL(",
-                                                                        "var lat: Integer,",
-                                                                        "var lon: Integer",
-                                                                        ")"))
+    listener.results(0).trim.split("\n").map(_.trim) should equal(Array("class LL {",
+                                                                        "var lat: Integer = 0",
+                                                                        "var lon: Integer = 0",
+                                                                        "}"))
   }
 }

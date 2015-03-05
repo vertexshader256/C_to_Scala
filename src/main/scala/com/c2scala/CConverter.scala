@@ -20,6 +20,7 @@ class CConverter extends CBaseListener {
   var latestStorageSpecifier = ""
   var latestTypeSpecifier = ""
   var latestDirectDeclarator = ""
+  var latestArraySize = 0
   var isArray = false
   val enumerations = ListBuffer[enumerator]()
   
@@ -40,6 +41,12 @@ class CConverter extends CBaseListener {
     case "short" => "Short"
     case "int" => "Integer"
     case _ => typeSpecifier
+  }
+  
+  def getTypeDefault(typeSpecifier: String) = typeSpecifier match {
+    case "char" | "long" | "short" | "int" => "0"
+    case "float" | "double" => "0.0"
+    case _ => "null"
   }
   
   override def enterSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
@@ -77,6 +84,16 @@ class CConverter extends CBaseListener {
     latestDirectDeclarator = ctx.getText
   }
   
+  override def exitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
+    if (ctx.expression() == null) { // is this the bottom of the tree?!
+      latestArraySize = if (ctx.getText.contains("0x")) {
+        Integer.getInteger(ctx.getText.drop(2), 16)
+      } else {
+        ctx.getText.toInt
+      }
+    }
+  }
+  
   override def exitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
   }
   
@@ -99,9 +116,9 @@ class CConverter extends CBaseListener {
   override def exitTypedefName(ctx: CParser.TypedefNameContext) = {
     if (isWithinStruct) {
       if (specifierQualifierLevel == 2 && currentTypeName != "") {
-        structDeclarations += "var " + convertTypeName(ctx.Identifier().getText, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName)
+        structDeclarations += "var " + convertTypeName(ctx.Identifier().getText, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName) + " = " + getTypeDefault(currentTypeName)
       } else if (isArray) {
-        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" //type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeName) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
       }
     } else {
       typedefNames += ctx.Identifier().getText
@@ -138,12 +155,12 @@ class CConverter extends CBaseListener {
   
   override def exitDeclaration(ctx: CParser.DeclarationContext) = {
     if (declarationHasStruct && !isWithinStruct) {
-      var result = "case class " + typedefNames(0) + "(\n"
+      var result = "class " + typedefNames(0) + " {\n"
       //structDeclarations.foreach(println)
       if (!structDeclarations.isEmpty) {
-        result += structDeclarations.map("  " + _).reduce{_ + ",\n" + _}
+        result += structDeclarations.map("  " + _).reduce{_ + "\n" + _}
       }
-      result += "\n)"
+      result += "\n}"
       results += result
     } else if (isArray && typedefNames.size == 1) {
       results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
