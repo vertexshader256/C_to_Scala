@@ -88,8 +88,10 @@ class CConverter extends CBaseListener {
     if (ctx.expression() == null) { // is this the bottom of the tree?!
       latestArraySize = if (ctx.getText.contains("0x")) {
         Integer.getInteger(ctx.getText.drop(2), 16)
+      } else if (ctx.getText forall Character.isDigit) {
+          ctx.getText.toInt
       } else {
-        ctx.getText.toInt
+        0
       }
     }
   }

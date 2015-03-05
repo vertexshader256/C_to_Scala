@@ -15,7 +15,7 @@ import org.antlr.runtime.Token;
 
 class EnumTypedef extends FlatSpec with ShouldMatchers {
 
-  "A enum typedef conversion" should "convert correctly" in {
+  "A simple enum typedef" should "convert correctly" in {
     val name = System.nanoTime
     
     val test = "typedef enum {\n" +
@@ -35,16 +35,37 @@ class EnumTypedef extends FlatSpec with ShouldMatchers {
     val listener = new CConverter();
     ParseTreeWalker.DEFAULT.walk(listener, ctx); 
 
-    object WeekDay extends Enumeration {
-    type WeekDay = Value
-    val Mon, Tue, Wed, Thu, Fri, Sat, Sun = Value
-  }
-  import WeekDay._
-    
-    println("here: " + listener.results(0).trim)
     listener.results.map(_.trim).filter(_.size > 0) should equal(Array("type OBSTACLE_TYPE = Int",
                                                                        "val LINE_TYPE: OBSTACLE_TYPE = 0x00000001",
                                                                        "val POINT_TYPE: OBSTACLE_TYPE = 0x00000002"
+                                                                       ))
+  }
+  
+  "A simple enum typedef with implicit numbering" should "convert correctly" in {
+    val name = System.nanoTime
+    
+    val test = "typedef enum {\n" +
+      "LINE_TYPE  = 0,\n" +
+      "POINT_TYPE = LINE_TYPE,\n" +
+      "SQUARE_TYPE = 1\n" +
+      "} OBSTACLE_TYPE;"
+
+    val parser = new CParser(
+            new CommonTokenStream(
+                    new CLexer(
+                            new ANTLRInputStream(test))));
+  
+    parser.setBuildParseTree(true);
+
+    // This line prints the error
+    val ctx = parser.compilationUnit();
+    val listener = new CConverter();
+    ParseTreeWalker.DEFAULT.walk(listener, ctx); 
+
+    listener.results.map(_.trim).filter(_.size > 0) should equal(Array("type OBSTACLE_TYPE = Int",
+                                                                       "val LINE_TYPE: OBSTACLE_TYPE = 0",
+                                                                       "val POINT_TYPE: OBSTACLE_TYPE = LINE_TYPE",
+                                                                       "val SQUARE_TYPE: OBSTACLE_TYPE = 1"
                                                                        ))
   }
 }
