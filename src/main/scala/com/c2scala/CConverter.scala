@@ -1,8 +1,7 @@
 package com.c2scala
 
 import scala.collection.mutable.ListBuffer
-
-
+import scala.collection.mutable.HashMap
 
 class CConverter extends CBaseListener {
   var isWithinStruct = false
@@ -15,6 +14,8 @@ class CConverter extends CBaseListener {
   var isTypeEnum = false
   var isWithinFunction = false
   var hasTypedefName = false
+  
+  val cTypes = HashMap[String, String]()
   
   val typedefNames = ListBuffer[String]()
   var latestStorageSpecifier = ""
@@ -108,12 +109,17 @@ class CConverter extends CBaseListener {
   }
   
   override def exitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
+    
+    
+    
       if (islatestStructDecArray && latestArraySize != 0) {
         structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeName) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
       } else if (islatestStructDecArray && latestArraySize == 0) {
         structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
       } else if (currentTypeName != "") {
-        structDeclarations += "var " + convertTypeName(latestStructDecName, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName) + " = " + getTypeDefault(currentTypeName)
+        println(getTypeDefault(cTypes.withDefaultValue("couldnt find")(currentTypeName)))
+        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(currentTypeName)(currentTypeName))
+        structDeclarations += "var " + convertTypeName(latestStructDecName, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName) + " = " + baseTypeDefault
       }
   }
   
@@ -156,8 +162,10 @@ class CConverter extends CBaseListener {
     } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier != "extern") {
       if (typedefNames.size == 1) {
         results += "type " + typedefNames(0) + " = " + convertTypeSpecifier(latestTypeSpecifier) + "\n"
+        cTypes += typedefNames(0) -> latestTypeSpecifier
       } else if (typedefNames.size == 2) {
         results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
+        cTypes += typedefNames(1) -> typedefNames(0)
       }
     } else if (isTypeEnum && !enumerations.isEmpty) {
       results += "type " + typedefNames(0) + " = Int"

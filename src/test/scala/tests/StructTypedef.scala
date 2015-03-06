@@ -16,6 +16,32 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
                                               "}"))
   }
   
+  "A simple typedef with primitives" should "convert correctly" in {
+    val test = "typedef struct {\n" +
+      "int lat ;\n" +
+      "float lon ;\n" +
+      "} LL;"
+    
+    convertedToScala(test) should equal(Array("class LL {",
+                                              "var lat: Integer = 0",
+                                              "var lon: Float = 0.0",
+                                              "}"))
+  }
+  
+  "A typedef with referenced type default" should "convert correctly" in {
+    val test = "typedef int x;\n" +
+      "typedef struct {\n" +
+      "x lat ;\n" +
+      "float lon ;\n" +
+      "} LL;"
+    
+    convertedToScala(test) should equal(Array("type x = Integer",
+                                              "class LL {",
+                                              "var lat: x = 0",
+                                              "var lon: Float = 0.0",
+                                              "}"))
+  }
+  
   "A typedef struct with an array" should "convert correctly" in {
     val test = "typedef struct {\n" +
       "LATLON lat[2048] ;\n" +
