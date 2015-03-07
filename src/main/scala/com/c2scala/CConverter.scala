@@ -5,7 +5,7 @@ import scala.collection.mutable.HashMap
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
 
-class CConverter extends ChainListener {
+class CConverter extends ChainListener[String] {
   var isWithinStruct = false
   var declarationHasStruct = false
   var declarationHasTypedefStruct = false
@@ -85,7 +85,6 @@ class CConverter extends ChainListener {
   }
    
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
-    super.visitTypedefName(ctx)
     if (!isWithinStruct) {
       typedefNames += ctx.Identifier().getText
     }
@@ -185,7 +184,8 @@ class CConverter extends ChainListener {
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
     //println("ENTERING TYPEDEF: " +ctx.getText)
     latestStorageSpecifier = ctx.getText
-    super.visitStorageClassSpecifier(ctx)
+    ""
+    //super.visitStorageClassSpecifier(ctx)
   }
 
 }

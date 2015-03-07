@@ -10,7 +10,7 @@ import org.antlr.runtime.tree.TreeAdaptor;
 import org.antlr.v4.runtime.Token;
 import scala.collection.mutable.ListBuffer
 
-class ChainListener extends CBaseVisitor[String] {
+class ChainListener[X] extends CBaseVisitor[X] {
   
   val results = ListBuffer[String]()
   
@@ -45,7 +45,7 @@ class ChainListener extends CBaseVisitor[String] {
     }
   }
   
-  def translate(ctx: ParseTree) = {
+  def translate(ctx: ParseTree): X = {
     import scala.collection.JavaConverters._
 
     val parser = new CParser(
@@ -57,8 +57,7 @@ class ChainListener extends CBaseVisitor[String] {
       val compilationUnit = parser.compilationUnit();
       
       //ParseTreeWalker.DEFAULT.walk(this, compilationUnit); 
+      println("BLAHHH: " + visit(compilationUnit))
       visit(compilationUnit)
-        
-      results
   }
 }
