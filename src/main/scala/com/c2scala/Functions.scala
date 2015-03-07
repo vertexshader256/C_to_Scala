@@ -6,12 +6,11 @@ case class Parameter(name: String, paramType: String) {
   override def toString = name + ": " + paramType
 }
 
-class FunctionConverter extends CBaseListener {
+class FunctionConverter extends ChainListener {
   var returnType = ""
   var functionName = ""
   var isWithinParameters = false
   val parameters = ListBuffer[Parameter]()
-  val results = ListBuffer[String]()
   
   
   override def enterFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
@@ -21,7 +20,7 @@ class FunctionConverter extends CBaseListener {
   
   override def enterTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     if (!isWithinParameters) {
-      returnType = ctx.getText
+      returnType = convertTypeSpecifier(ctx.getText)
     }
   }
   
@@ -31,7 +30,7 @@ class FunctionConverter extends CBaseListener {
   
   override def exitParameterDeclaration(ctx: CParser.ParameterDeclarationContext) = {
     isWithinParameters = false
-    parameters += Parameter(ctx.declarator().getText, ctx.declarationSpecifiers().getText)
+    parameters += Parameter(ctx.declarator().getText, convertTypeSpecifier(ctx.declarationSpecifiers().getText))
   }
   
   override def enterDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {

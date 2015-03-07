@@ -17,7 +17,7 @@ class PrimitiveTypedefInt extends FlatSpec with ShouldMatchers {
 
   "A simple typedef conversion" should "convert correctly" in {
 
-    convertedToScala("typedef int LATLON;").head should equal("type LATLON = Integer")
+    convertedToScala("typedef int LATLON;").head should equal("type LATLON = Int")
   }
 }
 

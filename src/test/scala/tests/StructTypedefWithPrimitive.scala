@@ -24,8 +24,8 @@ class StructTypedefWithPrimitive extends FlatSpec with ShouldMatchers {
       "} LL;"
     
     convertedToScala(test) should equal(Array("class LL {",
-                                              "var lat: Integer = 0",
-                                              "var lon: Integer = 0",
+                                              "var lat: Int = 0",
+                                              "var lon: Int = 0",
                                               "}"))
   }
 }
