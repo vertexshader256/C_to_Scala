@@ -35,31 +35,37 @@ class CConverter extends ChainListener {
   
   
   
-  override def enterSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
+  override def visitSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
     specifierQualifierLevel += 1
-  }
-  
-  override def exitSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
+    super.visitSpecifierQualifierList(ctx)
     specifierQualifierLevel -= 1
+    ""
   }
   
-  override def enterEnumerator(ctx: CParser.EnumeratorContext) = {
+  override def visitEnumerator(ctx: CParser.EnumeratorContext) = {
     if (ctx.enumerationConstant() != null && ctx.constantExpression() != null) {
       enumerations += enumerator(ctx.enumerationConstant().getText, ctx.constantExpression().getText)
     }
+    super.visitEnumerator(ctx)
+    ""
   }
   
-  override def enterInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
+  override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
     isWithinFunction = true
+    super.visitInitDeclaratorList(ctx)
+    ""
   }
   
-  override def enterDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
+  override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     isArray = true
     islatestStructDecArray = true
     latestDirectDeclarator = ctx.getText
+    super.visitDirectDeclarator(ctx)
+    ""
   }
   
-  override def exitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
+  override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
+    super.visitPrimaryExpression(ctx)
     if (ctx.expression() == null) { // is this the bottom of the tree?!
       latestArraySize = if (ctx.getText.contains("0x")) {
         Integer.getInteger(ctx.getText.drop(2), 16)
@@ -69,65 +75,61 @@ class CConverter extends ChainListener {
         0
       }
     }
+    ""
   }
 
-  override def enterEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
+  override def visitEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
     isTypeEnum = true
+    super.visitEnumSpecifier(ctx)
+    ""
   }
    
-  override def exitTypedefName(ctx: CParser.TypedefNameContext) = {
+  override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
+    super.visitTypedefName(ctx)
     if (!isWithinStruct) {
       typedefNames += ctx.Identifier().getText
     }
     
     hasTypedefName = true
     latestStructDecName = ctx.Identifier().getText
+    ""
   }
   
-  override def enterStructDeclaration(ctx: CParser.StructDeclarationContext) = {
+  override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
     latestStructDecName = ""
     islatestStructDecArray = false
-  }
-  
-  override def exitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
-    
-    
-    
-      if (islatestStructDecArray && latestArraySize != 0) {
+    super.visitStructDeclaration(ctx)
+    if (islatestStructDecArray && latestArraySize != 0) {
         structDeclarations += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeSpec.getText) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-      } else if (islatestStructDecArray && latestArraySize == 0) {
+    } else if (islatestStructDecArray && latestArraySize == 0) {
         structDeclarations += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-      } else if (currentTypeSpec != "") {
+    } else if (currentTypeSpec != "") {
         println(getTypeDefault(cTypes.withDefaultValue("couldnt find")(currentTypeSpec.getText)))
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(currentTypeSpec.getText)(currentTypeSpec.getText))
         structDeclarations += "var " + convertTypeName(latestStructDecName, currentTypeSpec.getText) + ": " + translateTypeSpec(currentTypeSpec) + " = " + baseTypeDefault
-      }
+    }
+    ""
   }
-  
-  override def enterTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
+   
+  override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     hasTypedefName = false
-  }
-  
-  override def exitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
+    super.visitTypeSpecifier(ctx)
     if (!hasTypedefName)
       latestTypeSpec = ctx
       
       if (specifierQualifierLevel == 1) {
         currentTypeSpec = ctx
       } 
+    ""
   }
+   
   
- 
-  
-  override def enterFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-
+  override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
     results ++= new FunctionConverter().translate(ctx)
+    super.visitFunctionDefinition(ctx)
   }
-  
-  override def exitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-  }
-  
-  override def enterDeclaration(ctx: CParser.DeclarationContext) = {
+
+  override def visitDeclaration(ctx: CParser.DeclarationContext) = {
     latestStorageSpecifier = ""
     latestTypeSpec = null
     currentTypeSpec = null
@@ -137,10 +139,10 @@ class CConverter extends ChainListener {
     isArray = false
     typedefNames.clear
     enumerations.clear
-  }
-  
-  override def exitDeclaration(ctx: CParser.DeclarationContext) = {
-    if (declarationHasStruct && !isWithinStruct) {
+    
+    super.visitDeclaration(ctx)
+    
+     if (declarationHasStruct && !isWithinStruct) {
       var result = "class " + typedefNames(0) + " {\n"
       //structDeclarations.foreach(println)
       if (!structDeclarations.isEmpty) {
@@ -166,24 +168,24 @@ class CConverter extends ChainListener {
     }
     
     declarationHasStruct = false
+    ""
   }
   
-  override def enterStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
+  override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
     isWithinStruct = true
     declarationHasStruct = true
     structDeclarations.clear
-  }
-  
-  override def exitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
+    
+    super.visitStructOrUnionSpecifier(ctx)
+    
     isWithinStruct = false
+    ""
   }
-  
-  override def enterStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
+ 
+  override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
     //println("ENTERING TYPEDEF: " +ctx.getText)
     latestStorageSpecifier = ctx.getText
+    super.visitStorageClassSpecifier(ctx)
   }
-  
-  override def exitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
-    //println("LEAVING TYPEDEF ")
-  }
+
 }

@@ -14,40 +14,40 @@ class FunctionConverter extends ChainListener {
   val parameters = ListBuffer[Parameter]()
   
   
-  override def enterFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
+  override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
     println("FUNCTION ENTERED: " + ctx.getText)
     parameters.clear
-  }
-  
-  override def enterTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
-    if (!isWithinParameters) {
-      returnType = translateTypeSpec(ctx)
-    } else {
-      latestParamTypeSpec = ctx
-    }
-  }
-  
-  override def enterParameterDeclaration(ctx: CParser.ParameterDeclarationContext) = {
-    isWithinParameters = true
-  }
-  
-  override def exitParameterDeclaration(ctx: CParser.ParameterDeclarationContext) = {
-    isWithinParameters = false
-    parameters += Parameter(ctx.declarator().getText, translateTypeSpec(latestParamTypeSpec))
-  }
-  
-  override def enterDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-    if (ctx.directDeclarator() == null) {
-      functionName = ctx.getText
-    }
-  }
-  
-  override def exitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-    
+    super.visitFunctionDefinition(ctx)
     println("FUNCTION EXITED")
     //println(ctx.getText)
     val result = "def " + functionName + "(" + parameters.map(_.toString).foldLeft("")(_ + ", " + _) + "): " + returnType + " = {}"
     println(result)
     results += result
+    ""
+  }
+  
+  override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
+    if (!isWithinParameters) {
+      returnType = translateTypeSpec(ctx)
+    } else {
+      latestParamTypeSpec = ctx
+    }
+    super.visitTypeSpecifier(ctx)
+    ""
+  }
+  
+  override def visitParameterDeclaration(ctx: CParser.ParameterDeclarationContext) = {
+    isWithinParameters = true
+    super.visitParameterDeclaration(ctx)
+      isWithinParameters = false
+    parameters += Parameter(ctx.declarator().getText, translateTypeSpec(latestParamTypeSpec))
+    ""
+  }
+   
+  override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
+    if (ctx.directDeclarator() == null) {
+      functionName = ctx.getText
+    }
+    super.visitDirectDeclarator(ctx)
   }
 }

@@ -22,9 +22,9 @@ package object tests {
   
       // This line prints the error
       val ctx = parser.compilationUnit();
-      val listener = new CConverter();
-      ParseTreeWalker.DEFAULT.walk(listener, ctx);
+      val visitor = new CConverter();
+      visitor.visit(ctx);
       
-      listener.results.toList.flatMap{_.split("\n").map(_.trim)}.toArray
+      visitor.results.toList.flatMap{_.split("\n").map(_.trim)}.toArray
   }
 }

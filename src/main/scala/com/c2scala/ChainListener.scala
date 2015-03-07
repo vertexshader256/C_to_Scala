@@ -10,7 +10,7 @@ import org.antlr.runtime.tree.TreeAdaptor;
 import org.antlr.v4.runtime.Token;
 import scala.collection.mutable.ListBuffer
 
-class ChainListener extends CBaseListener{
+class ChainListener extends CBaseVisitor[String] {
   
   val results = ListBuffer[String]()
   
@@ -56,7 +56,8 @@ class ChainListener extends CBaseListener{
       // This line prints the error
       val compilationUnit = parser.compilationUnit();
       
-      ParseTreeWalker.DEFAULT.walk(this, compilationUnit); 
+      //ParseTreeWalker.DEFAULT.walk(this, compilationUnit); 
+      visit(compilationUnit)
         
       results
   }

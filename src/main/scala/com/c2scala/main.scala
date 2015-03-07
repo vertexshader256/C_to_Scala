@@ -75,9 +75,9 @@ object main {
   
         // This line prints the error
         val ctx = parser.compilationUnit();
-        val listener = new CConverter();
-        ParseTreeWalker.DEFAULT.walk(listener, ctx); 
-  
+        val visitor = new CConverter();
+        visitor.visit(ctx)
+
         println("RESULTS: ")
         
         val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileNameWithoutExtension + ".scala"))
@@ -85,7 +85,7 @@ object main {
         resultWriter.println("package convertedCode\n\n")
         includeFiles.foreach{x => resultWriter.println("import " + x)}
         resultWriter.println("object " + fileNameWithoutExtension + " {\n")
-        listener.results.foreach{line => resultWriter.println(line)}
+        visitor.results.foreach{line => resultWriter.println(line)}
         resultWriter.println("}\n")
         
         resultWriter.flush
