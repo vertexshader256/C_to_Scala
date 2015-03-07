@@ -2,6 +2,8 @@ package com.c2scala
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
+import org.antlr.v4.runtime.tree.ParseTree
+import org.antlr.v4.runtime.Token
 
 class CConverter extends CBaseListener {
   var isWithinStruct = false
@@ -134,6 +136,41 @@ class CConverter extends CBaseListener {
       if (specifierQualifierLevel == 1) {
         currentTypeName = ctx.getText
       } 
+  }
+  
+  def copyTreeRecursive(original: ParseTree ): List[Token] = {
+    if (original.getChildCount == 0) {
+      List(original.getPayload.asInstanceOf[Token])
+    } else {    
+      (0 until original.getChildCount).toList.flatMap{x => copyTreeRecursive(original.getChild(x))}
+    }
+  }
+  
+  override def enterFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
+    
+    import org.antlr.v4.runtime.CommonTokenStream;
+    import org.antlr.v4.runtime.ListTokenSource;
+    import org.antlr.v4.runtime.tree.ParseTreeWalker;
+    import org.antlr.runtime.tree.CommonTree;
+    import org.antlr.runtime.tree.CommonTreeAdaptor;
+    import org.antlr.runtime.tree.TreeAdaptor;
+    import org.antlr.runtime.Token;
+    import scala.collection.JavaConversions._
+
+    val listener = new FunctionConverter()
+
+    val parser = new CParser(
+            new CommonTokenStream(new ListTokenSource(copyTreeRecursive(ctx))))
+    
+        parser.setBuildParseTree(true);
+  
+        // This line prints the error
+        val compilationUnit = parser.compilationUnit();
+        
+        ParseTreeWalker.DEFAULT.walk(listener, compilationUnit); 
+  }
+  
+  override def exitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
   }
   
   override def enterDeclaration(ctx: CParser.DeclarationContext) = {
