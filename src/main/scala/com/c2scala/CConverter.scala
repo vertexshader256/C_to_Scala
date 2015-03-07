@@ -168,6 +168,8 @@ class CConverter extends CBaseListener {
         val compilationUnit = parser.compilationUnit();
         
         ParseTreeWalker.DEFAULT.walk(listener, compilationUnit); 
+        
+       results ++= listener.results
   }
   
   override def exitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
