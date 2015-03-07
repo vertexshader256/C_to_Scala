@@ -22,13 +22,13 @@ class ChainListener extends CBaseListener{
     }
   }
   
-  protected def convertTypeSpecifier(typeSpecifier: String) = typeSpecifier match {
+  protected def translateTypeSpec(typeSpec: CParser.TypeSpecifierContext) = typeSpec.getText match {
     case "char" => "Char"
     case "float" => "Float"
     case "long" => "Long"
     case "short" => "Short"
     case "int" => "Int"
-    case _ => typeSpecifier
+    case _ => typeSpec.getText
   }
   
   protected def getTypeDefault(typeSpecifier: String) = typeSpecifier match {

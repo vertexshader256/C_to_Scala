@@ -11,7 +11,7 @@ class CConverter extends ChainListener {
   var declarationHasTypedefStruct = false
   val structDeclarations = ListBuffer[String]()
   var specifierQualifierLevel = 0
-  var currentTypeName = ""
+  var currentTypeSpec: CParser.TypeSpecifierContext = null
 
   var isTypeEnum = false
   var isWithinFunction = false
@@ -21,7 +21,7 @@ class CConverter extends ChainListener {
   
   val typedefNames = ListBuffer[String]()
   var latestStorageSpecifier = ""
-  var latestTypeSpecifier = ""
+  var latestTypeSpec: CParser.TypeSpecifierContext = null
   var latestDirectDeclarator = ""
   
   var latestArraySize = 0
@@ -94,13 +94,13 @@ class CConverter extends ChainListener {
     
     
       if (islatestStructDecArray && latestArraySize != 0) {
-        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeName) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeSpec.getText) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
       } else if (islatestStructDecArray && latestArraySize == 0) {
-        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + convertTypeSpecifier(currentTypeName) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-      } else if (currentTypeName != "") {
-        println(getTypeDefault(cTypes.withDefaultValue("couldnt find")(currentTypeName)))
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(currentTypeName)(currentTypeName))
-        structDeclarations += "var " + convertTypeName(latestStructDecName, currentTypeName) + ": " + convertTypeSpecifier(currentTypeName) + " = " + baseTypeDefault
+        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+      } else if (currentTypeSpec != "") {
+        println(getTypeDefault(cTypes.withDefaultValue("couldnt find")(currentTypeSpec.getText)))
+        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(currentTypeSpec.getText)(currentTypeSpec.getText))
+        structDeclarations += "var " + convertTypeName(latestStructDecName, currentTypeSpec.getText) + ": " + translateTypeSpec(currentTypeSpec) + " = " + baseTypeDefault
       }
   }
   
@@ -110,10 +110,10 @@ class CConverter extends ChainListener {
   
   override def exitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     if (!hasTypedefName)
-      latestTypeSpecifier = ctx.getText
+      latestTypeSpec = ctx
       
       if (specifierQualifierLevel == 1) {
-        currentTypeName = ctx.getText
+        currentTypeSpec = ctx
       } 
   }
   
@@ -129,8 +129,8 @@ class CConverter extends ChainListener {
   
   override def enterDeclaration(ctx: CParser.DeclarationContext) = {
     latestStorageSpecifier = ""
-    latestTypeSpecifier = ""
-    currentTypeName = ""
+    latestTypeSpec = null
+    currentTypeSpec = null
     declarationHasStruct = false
     isTypeEnum = false
     isWithinFunction = false
@@ -152,8 +152,8 @@ class CConverter extends ChainListener {
       results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
     } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier != "extern") {
       if (typedefNames.size == 1) {
-        results += "type " + typedefNames(0) + " = " + convertTypeSpecifier(latestTypeSpecifier) + "\n"
-        cTypes += typedefNames(0) -> latestTypeSpecifier
+        results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
+        cTypes += typedefNames(0) -> latestTypeSpec.getText
       } else if (typedefNames.size == 2) {
         results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
         cTypes += typedefNames(1) -> typedefNames(0)

@@ -10,6 +10,7 @@ class FunctionConverter extends ChainListener {
   var returnType = ""
   var functionName = ""
   var isWithinParameters = false
+  var latestParamTypeSpec: CParser.TypeSpecifierContext = null
   val parameters = ListBuffer[Parameter]()
   
   
@@ -20,7 +21,9 @@ class FunctionConverter extends ChainListener {
   
   override def enterTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     if (!isWithinParameters) {
-      returnType = convertTypeSpecifier(ctx.getText)
+      returnType = translateTypeSpec(ctx)
+    } else {
+      latestParamTypeSpec = ctx
     }
   }
   
@@ -30,7 +33,7 @@ class FunctionConverter extends ChainListener {
   
   override def exitParameterDeclaration(ctx: CParser.ParameterDeclarationContext) = {
     isWithinParameters = false
-    parameters += Parameter(ctx.declarator().getText, convertTypeSpecifier(ctx.declarationSpecifiers().getText))
+    parameters += Parameter(ctx.declarator().getText, translateTypeSpec(latestParamTypeSpec))
   }
   
   override def enterDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
