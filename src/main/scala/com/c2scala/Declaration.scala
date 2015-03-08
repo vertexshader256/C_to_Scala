@@ -17,9 +17,9 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   
   var latestArraySize = 0
   var isArray = false
-  val enumerations = ListBuffer[enumerator]()
+  var enumeration: Enumeration = null
   
-  case class enumerator(constant: String, expression: String)
+  
     
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
     latestStorageSpecifier = ""
@@ -27,7 +27,6 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     currentTypeSpec = null
     isArray = false
     typedefNames.clear
-    enumerations.clear
     
     super.visitDeclaration(ctx)
     
@@ -42,7 +41,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
         results += result
       } else if (isArray && typedefNames.size == 1) {
         results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-      } else if (enumerations.isEmpty) {
+      } else if (enumeration == null) {
         if (typedefNames.size == 1) {
           results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
           cTypes += typedefNames(0) -> latestTypeSpec.getText
@@ -50,10 +49,10 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
           results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
           cTypes += typedefNames(1) -> typedefNames(0)
         }
-      } else if (!enumerations.isEmpty) {
+      } else if (enumeration != null) {
           results += "type " + typedefNames(0) + " = Int"
-          enumerations.foreach{enum =>
-            results += ("val " + enum.constant + ": " + typedefNames(0) + " = " + enum.expression)
+          enumeration.enumerators.foreach{enum =>
+            results += ("val " + enum.name + ": " + typedefNames(0) + " = " + enum.expression)
         }
       }
     } else if (latestStorageSpecifier == "") {
@@ -69,13 +68,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     ""
   }
   
-  override def visitEnumerator(ctx: CParser.EnumeratorContext) = {
-    if (ctx.enumerationConstant() != null && ctx.constantExpression() != null) {
-      enumerations += enumerator(ctx.enumerationConstant().getText, ctx.constantExpression().getText)
-    }
-    super.visitEnumerator(ctx)
-    ""
-  }
+  
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     isArray = true
@@ -112,6 +105,11 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     ""
   }
     
+  override def visitEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
+    enumeration = new EnumConverter(cTypes).visitEnumSpecifier(ctx)
+    ""
+  }
+  
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
     results ++= new FunctionConverter(cTypes).visitFunctionDefinition(ctx)
     super.visitFunctionDefinition(ctx)
@@ -123,10 +121,8 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   }
  
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
-    //println("ENTERING TYPEDEF: " +ctx.getText)
     latestStorageSpecifier = ctx.getText
     ""
-    //super.visitStorageClassSpecifier(ctx)
   }
 
 }
