@@ -111,13 +111,18 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
       results += result
     } else if (isArray && typedefNames.size == 1) {
       results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-    } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier != "extern") {
+    } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier == "typedef") {
       if (typedefNames.size == 1) {
         results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
         cTypes += typedefNames(0) -> latestTypeSpec.getText
       } else if (typedefNames.size == 2) {
         results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
         cTypes += typedefNames(1) -> typedefNames(0)
+      }
+    } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier != "typedef" && latestStorageSpecifier != "extern") {
+      if (typedefNames.size == 1) {
+        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
+        results += "var " + typedefNames(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + baseTypeDefault + "\n"
       }
     } else if (isTypeEnum && !enumerations.isEmpty) {
       results += "type " + typedefNames(0) + " = Int"

@@ -18,20 +18,24 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
   var specifierQualifierLevel = 0
   var currentTypeSpec: CParser.TypeSpecifierContext = null
 
-  var isTypeEnum = false
-  var isWithinFunction = false
-  var hasTypedefName = false
-
-  val typedefNames = ListBuffer[String]()
   var latestStorageSpecifier = ""
-  var latestTypeSpec: CParser.TypeSpecifierContext = null
   var latestDirectDeclarator = ""
   
   var latestArraySize = 0
-  var isArray = false
   
   var latestStructDecName = ""
   var islatestStructDecArray = false
+  
+   override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
+    declarationHasStruct = true
+    structDeclarations.clear
+    currentTypeSpec = null
+    declarationHasStruct = false
+    
+    super.visitStructOrUnionSpecifier(ctx)
+    
+    new Struct { val structDecl = structDeclarations }
+  }
 
    override def aggregateResult(aggregate: Struct, nextResult: Struct): Struct = {
     if (aggregate == null) {
@@ -65,7 +69,6 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-    isArray = true
     islatestStructDecArray = true
     latestDirectDeclarator = ctx.getText
     super.visitDirectDeclarator(ctx)
@@ -74,7 +77,6 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
  
    
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {   
-    hasTypedefName = true
     latestStructDecName = ctx.Identifier().getText
     null
   }
@@ -96,10 +98,7 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
   }
    
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
-    hasTypedefName = false
     super.visitTypeSpecifier(ctx)
-    if (!hasTypedefName)
-      latestTypeSpec = ctx
       
       if (specifierQualifierLevel == 1) {
         currentTypeSpec = ctx
@@ -108,28 +107,6 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
   }
  
   
-  override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
-    declarationHasStruct = true
-    structDeclarations.clear
-    latestStorageSpecifier = ""
-    latestTypeSpec = null
-    currentTypeSpec = null
-    declarationHasStruct = false
-    isTypeEnum = false
-    isWithinFunction = false
-    isArray = false
-    typedefNames.clear
-    
-    super.visitStructOrUnionSpecifier(ctx)
-    
-    new Struct { val structDecl = structDeclarations }
-  }
  
-  override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
-    //println("ENTERING TYPEDEF: " +ctx.getText)
-    latestStorageSpecifier = ctx.getText
-    null
-    //super.visitStorageClassSpecifier(ctx)
-  }
 
 }

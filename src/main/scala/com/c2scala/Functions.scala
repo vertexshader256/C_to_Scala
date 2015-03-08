@@ -11,6 +11,7 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
   var functionName = ""
   var isWithinParameters = false
   var latestParamTypeSpec: CParser.TypeSpecifierContext = null
+  val contents = ListBuffer[String]()
   val parameters = ListBuffer[Parameter]()
   
   override def aggregateResult(aggregate: List[String], nextResult: List[String]): List[String] = {
@@ -26,14 +27,15 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
   }
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-    println("FUNCTION ENTERED: " + ctx.getText)
     parameters.clear
     
     super.visitFunctionDefinition(ctx)
-    
-    println("FUNCTION EXITED")
+
     //println(ctx.getText)
-    val result = "def " + functionName + "(" + parameters.map(_.toString).foldLeft("")(_ + ", " + _) + "): " + returnType + " = {}"
+    val params = if (!parameters.isEmpty) parameters.map(_.toString).reduce(_ + ", " + _) else ""
+    var result = "def " + functionName + "(" + params + "): " + returnType + " = {"
+    contents.foreach{content => result += content.trim}
+    result += "}"
     println(result)
     results += result
     results.toList
@@ -49,6 +51,13 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
     Nil
   }
   
+  override def visitDeclaration(ctx: CParser.DeclarationContext) = {
+    val blah = new CConverter(cTypes)
+    blah.visitDeclaration(ctx)
+    contents ++= blah.results.toList
+    Nil
+  }
+  
   override def visitParameterDeclaration(ctx: CParser.ParameterDeclarationContext) = {
     isWithinParameters = true
     super.visitParameterDeclaration(ctx)
@@ -58,7 +67,7 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
   }
    
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-    if (ctx.directDeclarator() == null) {
+    if (!isWithinParameters) {
       functionName = ctx.getText
     }
     super.visitDirectDeclarator(ctx)
