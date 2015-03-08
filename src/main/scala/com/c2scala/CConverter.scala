@@ -21,6 +21,54 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
   
   case class enumerator(constant: String, expression: String)
     
+  override def visitDeclaration(ctx: CParser.DeclarationContext) = {
+    latestStorageSpecifier = ""
+    latestTypeSpec = null
+    currentTypeSpec = null
+    isArray = false
+    typedefNames.clear
+    enumerations.clear
+    
+    super.visitDeclaration(ctx)
+    
+    if (latestStorageSpecifier == "typedef") {
+      if (struct != null && !typedefNames.isEmpty) {
+        var result = "class " + typedefNames(0) + " {\n"
+        //structDeclarations.foreach(println)
+        if (!struct.structDecl.isEmpty) {
+          result += struct.structDecl.map("  " + _).reduce{_ + "\n" + _}
+        }
+        result += "\n}"
+        results += result
+      } else if (isArray && typedefNames.size == 1) {
+        results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+      } else if (enumerations.isEmpty) {
+        if (typedefNames.size == 1) {
+          results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
+          cTypes += typedefNames(0) -> latestTypeSpec.getText
+        } else if (typedefNames.size == 2) {
+          results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
+          cTypes += typedefNames(1) -> typedefNames(0)
+        }
+      } else if (!enumerations.isEmpty) {
+          results += "type " + typedefNames(0) + " = Int"
+          enumerations.foreach{enum =>
+            results += ("val " + enum.constant + ": " + typedefNames(0) + " = " + enum.expression)
+        }
+      }
+    } else if (latestStorageSpecifier == "") {
+      if (typedefNames.size == 1) {
+        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
+        results += "var " + typedefNames(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + baseTypeDefault + "\n"
+      } else if (typedefNames.size == 2) {
+        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typedefNames(1))(typedefNames(1)))
+        results += "var " + typedefNames(1) + ": " + typedefNames(0) + " = " + baseTypeDefault + "\n"
+      }
+    } 
+    
+    ""
+  }
+  
   override def visitEnumerator(ctx: CParser.EnumeratorContext) = {
     if (ctx.enumerationConstant() != null && ctx.constantExpression() != null) {
       enumerations += enumerator(ctx.enumerationConstant().getText, ctx.constantExpression().getText)
@@ -63,59 +111,10 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
     
     ""
   }
-   
-  
+    
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
     results ++= new FunctionConverter(cTypes).visitFunctionDefinition(ctx)
     super.visitFunctionDefinition(ctx)
-  }
-
-  override def visitDeclaration(ctx: CParser.DeclarationContext) = {
-    latestStorageSpecifier = ""
-    latestTypeSpec = null
-    currentTypeSpec = null
-    isArray = false
-    typedefNames.clear
-    enumerations.clear
-    
-    super.visitDeclaration(ctx)
-    
-     if (struct != null && !typedefNames.isEmpty) {
-      var result = "class " + typedefNames(0) + " {\n"
-      //structDeclarations.foreach(println)
-      if (!struct.structDecl.isEmpty) {
-        result += struct.structDecl.map("  " + _).reduce{_ + "\n" + _}
-      }
-      result += "\n}"
-      results += result
-    } else if (latestStorageSpecifier == "typedef") {
-      if (isArray && typedefNames.size == 1) {
-        results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-      } else if (enumerations.isEmpty) {
-        if (typedefNames.size == 1) {
-          results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
-          cTypes += typedefNames(0) -> latestTypeSpec.getText
-        } else if (typedefNames.size == 2) {
-          results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
-          cTypes += typedefNames(1) -> typedefNames(0)
-        }
-      } else if (!enumerations.isEmpty) {
-          results += "type " + typedefNames(0) + " = Int"
-          enumerations.foreach{enum =>
-            results += ("val " + enum.constant + ": " + typedefNames(0) + " = " + enum.expression)
-        }
-      }
-    } else if (latestStorageSpecifier == "") {
-      if (typedefNames.size == 1) {
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
-        results += "var " + typedefNames(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + baseTypeDefault + "\n"
-      } else if (typedefNames.size == 2) {
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typedefNames(1))(typedefNames(1)))
-        results += "var " + typedefNames(1) + ": " + typedefNames(0) + " = " + baseTypeDefault + "\n"
-      }
-    } 
-    
-    ""
   }
   
   override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
