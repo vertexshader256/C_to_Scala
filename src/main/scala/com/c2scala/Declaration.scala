@@ -6,7 +6,7 @@ import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
 import scala.collection.mutable.HashMap
 
-class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListener[String](cTypes) {
+class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListener[Unit](cTypes) {
   var struct: Struct = null
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   
@@ -18,8 +18,6 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   var latestArraySize = 0
   var isArray = false
   var enumeration: Enumeration = null
-  
-  
     
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
     latestStorageSpecifier = ""
@@ -64,8 +62,6 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
         results += "var " + typedefNames(1) + ": " + typedefNames(0) + " = " + baseTypeDefault + "\n"
       }
     } 
-    
-    ""
   }
   
   
@@ -74,7 +70,6 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     isArray = true
     latestDirectDeclarator = ctx.getText
     super.visitDirectDeclarator(ctx)
-    ""
   }
   
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
@@ -88,12 +83,10 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
         0
       }
     }
-    ""
   }
    
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
     typedefNames += ctx.Identifier().getText
-    ""
   }
     
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
@@ -101,13 +94,10 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     if (ctx.typedefName() == null) {
       latestTypeSpec = ctx
     }
-    
-    ""
   }
     
   override def visitEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
     enumeration = new EnumConverter(cTypes).visitEnumSpecifier(ctx)
-    ""
   }
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
@@ -117,12 +107,10 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   
   override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
     struct = new StructConverter(cTypes).visitStructOrUnionSpecifier(ctx)
-    ""
   }
  
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
     latestStorageSpecifier = ctx.getText
-    ""
   }
 
 }

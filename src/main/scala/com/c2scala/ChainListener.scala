@@ -37,26 +37,4 @@ class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor
     case "float" | "double" => "0.0"
     case _ => "null"
   }
-  
-  private def copyTreeRecursive(original: ParseTree ): List[Token] = {
-    if (original.getChildCount == 0) {
-      List(original.getPayload.asInstanceOf[Token])
-    } else {    
-      (0 until original.getChildCount).toList.flatMap{x => copyTreeRecursive(original.getChild(x))}
-    }
-  }
-  
-  def translate(ctx: ParseTree): X = {
-    import scala.collection.JavaConverters._
-
-    val parser = new CParser(
-            new CommonTokenStream(new ListTokenSource(copyTreeRecursive(ctx).asJava)))
-    
-      parser.setBuildParseTree(true);
-
-      // This line prints the error
-      val compilationUnit = parser.compilationUnit();
-
-      visit(compilationUnit)
-  }
 }
