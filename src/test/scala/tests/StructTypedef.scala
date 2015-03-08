@@ -5,10 +5,10 @@ import org.scalatest._
 class StructTypedef extends FlatSpec with ShouldMatchers {
 
   "A simple typedef" should "convert correctly" in {
-    val test = "typedef struct {\n" +
-      "LATLON lat ;\n" +
-      "LATLON lon ;\n" +
-      "} LL;"
+    val test = """typedef struct {
+                    LATLON lat ;
+                    LATLON lon ;
+                  } LL;"""
     
     convertedToScala(test) should equal(Array("class LL {",
                                               "var lat: LATLON = null",
@@ -17,10 +17,10 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
   }
   
   "A simple typedef with primitives" should "convert correctly" in {
-    val test = "typedef struct {\n" +
-      "int lat ;\n" +
-      "float lon ;\n" +
-      "} LL;"
+    val test = """typedef struct {
+                    int lat ;
+                    float lon ;
+                  } LL;"""
     
     convertedToScala(test) should equal(Array("class LL {",
                                               "var lat: Int = 0",
@@ -29,11 +29,11 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
   }
   
   "A typedef with referenced type default" should "convert correctly" in {
-    val test = "typedef int x;\n" +
-      "typedef struct {\n" + 
-      "x lat ;\n" +
-      "float lon ;\n" +
-      "} LL;"
+    val test = """typedef int x;
+                  typedef struct { 
+                    x lat ;
+                    float lon ;
+                  } LL;"""
     
     convertedToScala(test) should equal(Array("type x = Int",
                                               "class LL {",
@@ -43,10 +43,10 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
   }
   
   "A typedef struct with an array" should "convert correctly" in {
-    val test = "typedef struct {\n" +
-      "LATLON lat[2048] ;\n" +
-      "LATLON lon ;\n" +
-      "} LL;"
+    val test = """typedef struct {
+                    LATLON lat[2048] ;
+                    LATLON lon ;
+                  } LL;"""
     
     convertedToScala(test) should equal(Array("class LL {",
                                               "var lat: Array[LATLON] = Array.fill(2048)(null)",
@@ -55,10 +55,10 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
   }
   
   "A typedef struct with an array size surrounded in parenthesis" should "convert correctly" in {
-    val test = "typedef struct {\n" +
-      "LATLON lat[((2048))] ;\n" +
-      "LATLON lon ;\n" +
-      "} LL;"
+    val test = """typedef struct {
+                    LATLON lat[((2048))] ;
+                    LATLON lon ;
+                  } LL;"""
     
     convertedToScala(test) should equal(Array("class LL {",
                                               "var lat: Array[LATLON] = Array.fill(2048)(null)",
