@@ -9,10 +9,6 @@ import scala.collection.mutable.HashMap
 class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](cTypes) {
   var struct: Struct = null
   var currentTypeSpec: CParser.TypeSpecifierContext = null
-
-  var isTypeEnum = false
-  var isWithinFunction = false
-  var hasTypedefName = false
   
   val typedefNames = ListBuffer[String]()
   var latestStorageSpecifier = ""
@@ -30,12 +26,6 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
       enumerations += enumerator(ctx.enumerationConstant().getText, ctx.constantExpression().getText)
     }
     super.visitEnumerator(ctx)
-    ""
-  }
-  
-  override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
-    isWithinFunction = true
-    super.visitInitDeclaratorList(ctx)
     ""
   }
   
@@ -59,24 +49,15 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
     }
     ""
   }
-
-  override def visitEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
-    isTypeEnum = true
-    super.visitEnumSpecifier(ctx)
-    ""
-  }
    
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
     typedefNames += ctx.Identifier().getText
-    
-    hasTypedefName = true
     ""
   }
     
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
-    hasTypedefName = false
     super.visitTypeSpecifier(ctx)
-    if (!hasTypedefName) {
+    if (ctx.typedefName() == null) {
       latestTypeSpec = ctx
     }
     
@@ -93,8 +74,6 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
     latestStorageSpecifier = ""
     latestTypeSpec = null
     currentTypeSpec = null
-    isTypeEnum = false
-    isWithinFunction = false
     isArray = false
     typedefNames.clear
     enumerations.clear
@@ -109,17 +88,24 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
       }
       result += "\n}"
       results += result
-    } else if (isArray && typedefNames.size == 1) {
-      results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-    } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier == "typedef") {
-      if (typedefNames.size == 1) {
-        results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
-        cTypes += typedefNames(0) -> latestTypeSpec.getText
-      } else if (typedefNames.size == 2) {
-        results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
-        cTypes += typedefNames(1) -> typedefNames(0)
+    } else if (latestStorageSpecifier == "typedef") {
+      if (isArray && typedefNames.size == 1) {
+        results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+      } else if (enumerations.isEmpty) {
+        if (typedefNames.size == 1) {
+          results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
+          cTypes += typedefNames(0) -> latestTypeSpec.getText
+        } else if (typedefNames.size == 2) {
+          results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
+          cTypes += typedefNames(1) -> typedefNames(0)
+        }
+      } else if (!enumerations.isEmpty) {
+          results += "type " + typedefNames(0) + " = Int"
+          enumerations.foreach{enum =>
+            results += ("val " + enum.constant + ": " + typedefNames(0) + " = " + enum.expression)
+        }
       }
-    } else if (!isTypeEnum && !isWithinFunction && latestStorageSpecifier == "") {
+    } else if (latestStorageSpecifier == "") {
       if (typedefNames.size == 1) {
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
         results += "var " + typedefNames(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + baseTypeDefault + "\n"
@@ -127,12 +113,7 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typedefNames(1))(typedefNames(1)))
         results += "var " + typedefNames(1) + ": " + typedefNames(0) + " = " + baseTypeDefault + "\n"
       }
-    } else if (isTypeEnum && !enumerations.isEmpty) {
-      results += "type " + typedefNames(0) + " = Int"
-      enumerations.foreach{enum =>
-        results += ("val " + enum.constant + ": " + typedefNames(0) + " = " + enum.expression)
-      }
-    }
+    } 
     
     ""
   }
