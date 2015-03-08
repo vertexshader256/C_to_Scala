@@ -52,7 +52,7 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
   }
   
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
-    val blah = new CConverter(cTypes)
+    val blah = new DeclarationConverter(cTypes)
     blah.visitDeclaration(ctx)
     contents ++= blah.results.toList
     Nil

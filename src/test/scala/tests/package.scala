@@ -1,7 +1,7 @@
  import com.c2scala.CParser
 import com.c2scala.CLexer
 
-import com.c2scala.CConverter
+import com.c2scala.DeclarationConverter
 import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
@@ -25,7 +25,7 @@ package object tests {
       val cTypes = HashMap[String, String]()
       // This line prints the error
       val ctx = parser.compilationUnit();
-      val visitor = new CConverter(cTypes);
+      val visitor = new DeclarationConverter(cTypes);
       visitor.visit(ctx);
       
       visitor.results.toList.flatMap{_.split("\n").map(_.trim)}.toArray
