@@ -7,11 +7,7 @@ import org.antlr.v4.runtime.Token
 import scala.collection.mutable.HashMap
 
 class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](cTypes) {
-  var isWithinStruct = false
-  var declarationHasStruct = false
-  var declarationHasTypedefStruct = false
   var struct: Struct = null
-  var specifierQualifierLevel = 0
   var currentTypeSpec: CParser.TypeSpecifierContext = null
 
   var isTypeEnum = false
@@ -27,20 +23,8 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
   var isArray = false
   val enumerations = ListBuffer[enumerator]()
   
-  var latestStructDecName = ""
-  var islatestStructDecArray = false
-  
   case class enumerator(constant: String, expression: String)
-  
-  
-  
-  override def visitSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
-    specifierQualifierLevel += 1
-    super.visitSpecifierQualifierList(ctx)
-    specifierQualifierLevel -= 1
-    ""
-  }
-  
+    
   override def visitEnumerator(ctx: CParser.EnumeratorContext) = {
     if (ctx.enumerationConstant() != null && ctx.constantExpression() != null) {
       enumerations += enumerator(ctx.enumerationConstant().getText, ctx.constantExpression().getText)
@@ -57,7 +41,6 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     isArray = true
-    islatestStructDecArray = true
     latestDirectDeclarator = ctx.getText
     super.visitDirectDeclarator(ctx)
     ""
@@ -84,30 +67,25 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
   }
    
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
-    if (!isWithinStruct) {
-      typedefNames += ctx.Identifier().getText
-    }
+    typedefNames += ctx.Identifier().getText
     
     hasTypedefName = true
-    latestStructDecName = ctx.Identifier().getText
     ""
   }
     
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     hasTypedefName = false
     super.visitTypeSpecifier(ctx)
-    if (!hasTypedefName)
+    if (!hasTypedefName) {
       latestTypeSpec = ctx
-      
-      if (specifierQualifierLevel == 1) {
-        currentTypeSpec = ctx
-      } 
+    }
+    
     ""
   }
    
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-    results ++= new FunctionConverter(cTypes).translate(ctx)
+    results ++= new FunctionConverter(cTypes).visitFunctionDefinition(ctx)
     super.visitFunctionDefinition(ctx)
   }
 
@@ -115,7 +93,6 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
     latestStorageSpecifier = ""
     latestTypeSpec = null
     currentTypeSpec = null
-    declarationHasStruct = false
     isTypeEnum = false
     isWithinFunction = false
     isArray = false
@@ -149,7 +126,6 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
       }
     }
     
-    declarationHasStruct = false
     ""
   }
   

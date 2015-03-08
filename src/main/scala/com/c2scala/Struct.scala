@@ -11,7 +11,6 @@ trait Struct {
 }
 
 class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Struct](cTypes) {
-  var isWithinStruct = false
   var declarationHasStruct = false
   var declarationHasTypedefStruct = false
   val structDeclarations = ListBuffer[String]()
@@ -65,12 +64,6 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
     null
   }
   
-  override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
-    isWithinFunction = true
-    super.visitInitDeclaratorList(ctx)
-    null
-  }
-  
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     isArray = true
     islatestStructDecArray = true
@@ -80,11 +73,7 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
   }
  
    
-  override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
-    if (!isWithinStruct) {
-      typedefNames += ctx.Identifier().getText
-    }
-    
+  override def visitTypedefName(ctx: CParser.TypedefNameContext) = {   
     hasTypedefName = true
     latestStructDecName = ctx.Identifier().getText
     null
@@ -120,7 +109,6 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
  
   
   override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
-    isWithinStruct = true
     declarationHasStruct = true
     structDeclarations.clear
     latestStorageSpecifier = ""
