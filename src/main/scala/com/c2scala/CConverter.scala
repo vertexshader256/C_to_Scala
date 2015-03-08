@@ -101,7 +101,7 @@ class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](
     
     super.visitDeclaration(ctx)
     
-     if (struct != null) {
+     if (struct != null && !typedefNames.isEmpty) {
       var result = "class " + typedefNames(0) + " {\n"
       //structDeclarations.foreach(println)
       if (!struct.structDecl.isEmpty) {

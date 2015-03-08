@@ -39,7 +39,7 @@ object main {
         beforePreprocessingDir.listFiles().foreach(_.delete)
       }
       
-      for (cCodeFile <- cCodeDir.listFiles().filter(_.getName.endsWith(".h"))) {
+      for (cCodeFile <- cCodeDir.listFiles().filter{file => file.getName.endsWith(".h") || file.getName == "latlon_util.c"}) {
         val fileName = cCodeFile.getName
         val fileNameWithoutExtension = cCodeFile.getName.substring(0, cCodeFile.getName.lastIndexOf('.'))
         val includeFiles = new ListBuffer[String]()
@@ -83,7 +83,7 @@ object main {
 
         println("RESULTS: ")
         
-        val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileNameWithoutExtension + ".scala"))
+        val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileName + ".scala"))
         
         resultWriter.println("package convertedCode\n\n")
         includeFiles.foreach{x => resultWriter.println("import " + x)}
