@@ -13,6 +13,7 @@ import scala.collection.mutable.ListBuffer
 import java.util._
 import java.io._
 import scala.io.Source
+import scala.collection.mutable.HashMap
 
 object main {
   
@@ -73,9 +74,11 @@ object main {
   
         parser.setBuildParseTree(true);
   
+         val cTypes = HashMap[String, String]()
+        
         // This line prints the error
         val ctx = parser.compilationUnit();
-        val visitor = new CConverter();
+        val visitor = new CConverter(cTypes);
         visitor.visit(ctx)
 
         println("RESULTS: ")

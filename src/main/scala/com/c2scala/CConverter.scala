@@ -1,23 +1,22 @@
 package com.c2scala
 
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.HashMap
+
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
+import scala.collection.mutable.HashMap
 
-class CConverter extends ChainListener[String] {
+class CConverter(cTypes: HashMap[String, String]) extends ChainListener[String](cTypes) {
   var isWithinStruct = false
   var declarationHasStruct = false
   var declarationHasTypedefStruct = false
-  val structDeclarations = ListBuffer[String]()
+  var struct: Struct = null
   var specifierQualifierLevel = 0
   var currentTypeSpec: CParser.TypeSpecifierContext = null
 
   var isTypeEnum = false
   var isWithinFunction = false
   var hasTypedefName = false
-  
-  val cTypes = HashMap[String, String]()
   
   val typedefNames = ListBuffer[String]()
   var latestStorageSpecifier = ""
@@ -93,23 +92,7 @@ class CConverter extends ChainListener[String] {
     latestStructDecName = ctx.Identifier().getText
     ""
   }
-  
-  override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
-    latestStructDecName = ""
-    islatestStructDecArray = false
-    super.visitStructDeclaration(ctx)
-    if (islatestStructDecArray && latestArraySize != 0) {
-        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeSpec.getText) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-    } else if (islatestStructDecArray && latestArraySize == 0) {
-        structDeclarations += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-    } else if (currentTypeSpec != "") {
-        println(getTypeDefault(cTypes.withDefaultValue("couldnt find")(currentTypeSpec.getText)))
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(currentTypeSpec.getText)(currentTypeSpec.getText))
-        structDeclarations += "var " + convertTypeName(latestStructDecName, currentTypeSpec.getText) + ": " + translateTypeSpec(currentTypeSpec) + " = " + baseTypeDefault
-    }
-    ""
-  }
-   
+    
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     hasTypedefName = false
     super.visitTypeSpecifier(ctx)
@@ -124,7 +107,7 @@ class CConverter extends ChainListener[String] {
    
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-    results ++= new FunctionConverter().translate(ctx)
+    results ++= new FunctionConverter(cTypes).translate(ctx)
     super.visitFunctionDefinition(ctx)
   }
 
@@ -141,11 +124,11 @@ class CConverter extends ChainListener[String] {
     
     super.visitDeclaration(ctx)
     
-     if (declarationHasStruct && !isWithinStruct) {
+     if (struct != null) {
       var result = "class " + typedefNames(0) + " {\n"
       //structDeclarations.foreach(println)
-      if (!structDeclarations.isEmpty) {
-        result += structDeclarations.map("  " + _).reduce{_ + "\n" + _}
+      if (!struct.structDecl.isEmpty) {
+        result += struct.structDecl.map("  " + _).reduce{_ + "\n" + _}
       }
       result += "\n}"
       results += result
@@ -171,13 +154,7 @@ class CConverter extends ChainListener[String] {
   }
   
   override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
-    isWithinStruct = true
-    declarationHasStruct = true
-    structDeclarations.clear
-    
-    super.visitStructOrUnionSpecifier(ctx)
-    
-    isWithinStruct = false
+    struct = new StructConverter(cTypes).visitStructOrUnionSpecifier(ctx)
     ""
   }
  

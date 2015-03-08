@@ -1,12 +1,12 @@
 package com.c2scala
 
 import scala.collection.mutable.ListBuffer
-
+import scala.collection.mutable.HashMap
 case class Parameter(name: String, paramType: String) {
   override def toString = name + ": " + paramType
 }
 
-class FunctionConverter extends ChainListener[List[String]] {
+class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[List[String]](cTypes) {
   var returnType = ""
   var functionName = ""
   var isWithinParameters = false

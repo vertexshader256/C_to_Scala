@@ -1,6 +1,7 @@
 package com.c2scala
 
 import org.antlr.v4.runtime.CommonTokenStream;
+import scala.collection.mutable.HashMap
 import org.antlr.v4.runtime.ListTokenSource;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -10,7 +11,7 @@ import org.antlr.runtime.tree.TreeAdaptor;
 import org.antlr.v4.runtime.Token;
 import scala.collection.mutable.ListBuffer
 
-class ChainListener[X] extends CBaseVisitor[X] {
+class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor[X] {
   
   val results = ListBuffer[String]()
   
@@ -55,9 +56,7 @@ class ChainListener[X] extends CBaseVisitor[X] {
 
       // This line prints the error
       val compilationUnit = parser.compilationUnit();
-      
-      //ParseTreeWalker.DEFAULT.walk(this, compilationUnit); 
-      println("BLAHHH: " + visit(compilationUnit))
+
       visit(compilationUnit)
   }
 }

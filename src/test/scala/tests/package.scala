@@ -9,8 +9,11 @@ import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeAdaptor;
 import org.antlr.runtime.tree.TreeAdaptor;
 import org.antlr.runtime.Token;
+import scala.collection.mutable.HashMap
 
 package object tests {
+  
+  
   
   def convertedToScala(text: String): Array[String] = {
       val parser = new CParser(
@@ -19,10 +22,10 @@ package object tests {
                               new ANTLRInputStream(text))));
     
       parser.setBuildParseTree(true);
-  
+      val cTypes = HashMap[String, String]()
       // This line prints the error
       val ctx = parser.compilationUnit();
-      val visitor = new CConverter();
+      val visitor = new CConverter(cTypes);
       visitor.visit(ctx);
       
       visitor.results.toList.flatMap{_.split("\n").map(_.trim)}.toArray
