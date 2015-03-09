@@ -33,8 +33,8 @@ class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor
   }
   
   protected def getTypeDefault(typeSpecifier: String) = typeSpecifier match {
-    case "char" | "long" | "short" | "int" => "0"
-    case "float" | "double" => "0.0"
+    case "char" | "long" | "short" | "int" | "Char" | "Long" | "Short" | "Int"=> "0"
+    case "float" | "double" | "Float" | "Double"=> "0.0"
     case _ => "null"
   }
 }
