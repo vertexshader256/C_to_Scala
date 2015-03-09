@@ -12,6 +12,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   
   val typedefNames = ListBuffer[String]()
   val directDeclarators = ListBuffer[String]()
+  val explicitInitValues = ListBuffer[String]()
   var latestStorageSpecifier = ""
   var latestTypeSpec: CParser.TypeSpecifierContext = null
   var latestDirectDeclarator = ""
@@ -59,7 +60,13 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
         val typeName = if (!typedefNames.isEmpty) typedefNames(0) else translateTypeSpec(latestTypeSpec)
         val decl = "(" + directDeclarators.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typeName)(typeName))
-        val defaults = "(" + directDeclarators.map(x => baseTypeDefault).reduce(_ + ", " + _) + ")"
+        val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
+          if (index < explicitInitValues.size) {
+            explicitInitValues(index)
+          } else {
+            baseTypeDefault
+          }
+        }.reduce(_ + ", " + _) + ")"
         results += "var " + decl + " = " + defaults + "\n"
       } else if (typedefNames.size == 1) {
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
@@ -76,6 +83,9 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     super.visitInitDeclaratorList(ctx)
   }
   
+  override def visitInitializer(ctx: CParser.InitializerContext) = {
+    explicitInitValues += ctx.getText
+  }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     isArray = true

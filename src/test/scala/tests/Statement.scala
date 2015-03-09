@@ -24,7 +24,7 @@ class Statement extends FlatSpec with ShouldMatchers {
     convertedToScala("float x, y, r, s;").head should equal("var (x: Float, y: Float, r: Float, s: Float) = (0.0, 0.0, 0.0, 0.0)")
   }
   
-//  "Two variables of a primitive type being simultaneously declared" should "convert correctly" in {
-//    convertedToScala("float x = 2.0, y = 3.0;").head should equal("var (x: Float, y: Float) = (2.0, 3.0)")
-//  }
+  "Two variables of a primitive type being declared diff values" should "convert correctly" in {
+    convertedToScala("float x = 2.0, y = 3.0;").head should equal("var (x: Float, y: Float) = (2.0, 3.0)")
+  }
 }
