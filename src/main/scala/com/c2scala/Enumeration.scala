@@ -6,7 +6,7 @@ import scala.collection.mutable.HashMap
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
 
-case class Enumeration(enumerators: Seq[Enumerator])
+case class Enumeration(name: String, enumerators: Seq[Enumerator])
 case class Enumerator(name: String, expression: String)
 
 class EnumConverter(cTypes: HashMap[String, String]) extends ChainListener[Enumeration](cTypes) {
@@ -23,8 +23,13 @@ class EnumConverter(cTypes: HashMap[String, String]) extends ChainListener[Enume
   }
   
   override def visitEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
+    import scala.collection.JavaConverters._
+    
     super.visitEnumSpecifier(ctx)
-    Enumeration(enumerations)
+    val index = ctx.getParent.getParent.getRuleIndex
+    // assume the typedef name is the last child
+    val typeDefName = ctx.getParent.getParent.getParent.children.asScala.last.getText
+    Enumeration(typeDefName, enumerations)
   }
   
   override def visitEnumerator(ctx: CParser.EnumeratorContext) = {

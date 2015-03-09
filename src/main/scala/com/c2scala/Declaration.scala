@@ -50,7 +50,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
           cTypes += typedefNames(1) -> typedefNames(0)
         }
       } else if (enumeration != null) {
-          results += "type " + typedefNames(0) + " = Int"
+          results += "type " + enumeration.name + " = Int"
           enumeration.enumerators.foreach{enum =>
             results += ("val " + enum.name + ": " + typedefNames(0) + " = " + enum.expression)
         }
