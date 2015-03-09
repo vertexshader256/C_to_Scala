@@ -6,7 +6,7 @@ import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
 import scala.collection.mutable.HashMap
 
-class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListener[Unit](cTypes) {
+class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Unit](cTypes) {
   var struct: Struct = null
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   
@@ -30,31 +30,30 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     
     super.visitDeclaration(ctx)
     
-    if (latestStorageSpecifier == "typedef") {
-      val typedefConverter = new TypedefConverter(cTypes)
-      typedefConverter.visitDeclaration(ctx)
-      results ++= typedefConverter.results
-    } else if (latestStorageSpecifier == "") {
-      if (directDeclarators.size > 1) {
-        val typeName = if (!typedefNames.isEmpty) typedefNames(0) else translateTypeSpec(latestTypeSpec)
-        val decl = "(" + directDeclarators.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typeName)(typeName))
-        val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
-          if (index < explicitInitValues.size) {
-            explicitInitValues(index)
-          } else {
-            baseTypeDefault
-          }
-        }.reduce(_ + ", " + _) + ")"
-        results += "var " + decl + " = " + defaults + "\n"
-      } else if (typedefNames.size == 1) {
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
-        results += "var " + typedefNames(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + baseTypeDefault + "\n"
-      } else if (typedefNames.size == 2) {
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typedefNames(1))(typedefNames(1)))
-        results += "var " + typedefNames(1) + ": " + typedefNames(0) + " = " + baseTypeDefault + "\n"
+    if (struct != null && !typedefNames.isEmpty) {
+      var result = "class " + typedefNames(0) + " {\n"
+      //structDeclarations.foreach(println)
+      if (!struct.structDecl.isEmpty) {
+        result += struct.structDecl.map("  " + _).reduce{_ + "\n" + _}
       }
-    } 
+      result += "\n}"
+      results += result
+    } else if (isArray && typedefNames.size == 1) {
+      results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+    } else if (enumeration == null) {
+      if (typedefNames.size == 1) {
+        results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
+        cTypes += typedefNames(0) -> latestTypeSpec.getText
+      } else if (typedefNames.size == 2) {
+        results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
+        cTypes += typedefNames(1) -> typedefNames(0)
+      }
+    } else if (enumeration != null) {
+        results += "type " + enumeration.name + " = Int"
+        enumeration.enumerators.foreach{enum =>
+          results += ("val " + enum.name + ": " + typedefNames(0) + " = " + enum.expression)
+      }
+    }
   }
   
   override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
