@@ -9,18 +9,13 @@ import scala.collection.mutable.HashMap
 case class Typedef(name: String, expr: String)
 
 class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Unit](cTypes) {
+  val typeSpecs = ListBuffer[CParser.TypeSpecifierContext]()
+  
   var struct: Struct = null
-  
-  var latestStorageSpecifier = ""
-  var typeSpecs = ListBuffer[CParser.TypeSpecifierContext]()
-  
   var typedef: Typedef = null
-  
-  var latestArraySize = 0
   var enumeration: Enumeration = null
     
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
-    latestStorageSpecifier = ""
     typeSpecs.clear
 
     super.visitDeclaration(ctx)
@@ -48,19 +43,6 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     super.visitDirectDeclarator(ctx)
   }
   
-  override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
-    super.visitPrimaryExpression(ctx)
-    if (ctx.expression() == null) { // is this the bottom of the tree?!
-      latestArraySize = if (ctx.getText.contains("0x")) {
-        Integer.getInteger(ctx.getText.drop(2), 16)
-      } else if (ctx.getText forall Character.isDigit) {
-          ctx.getText.toInt
-      } else {
-        0
-      }
-    }
-  }
-
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     super.visitTypeSpecifier(ctx)
     if (ctx.getText != "unsigned") {
@@ -84,9 +66,5 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   
   override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
     struct = new StructConverter(cTypes).visitStructOrUnionSpecifier(ctx)
-  }
- 
-  override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
-    latestStorageSpecifier = ctx.getText
   }
 }
