@@ -13,21 +13,18 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   
   var latestTypedefName = ""
-  val explicitInitValues = ListBuffer[String]()
   var latestStorageSpecifier = ""
   var latestTypeSpec: CParser.TypeSpecifierContext = null
   
   var typedef: Typedef = null
   
   var latestArraySize = 0
-  var isArray = false
   var enumeration: Enumeration = null
     
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
     latestStorageSpecifier = ""
     latestTypeSpec = null
     currentTypeSpec = null
-    isArray = false
     latestTypedefName = ""
     
     super.visitDeclaration(ctx)
@@ -50,15 +47,9 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     } 
   }
   
-  override def visitInitializer(ctx: CParser.InitializerContext) = {
-    explicitInitValues += ctx.getText
-  }
-  
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-    isArray = true
     typedef = Typedef(ctx.getText, "Array[" + latestTypedefName + "]")
     super.visitDirectDeclarator(ctx)
-    
   }
   
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
@@ -75,12 +66,10 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   }
    
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = { 
-    if (!isArray) {
-      if (latestTypedefName == "" && latestTypeSpec != null) {
-        typedef = Typedef(ctx.Identifier().getText, translateTypeSpec(latestTypeSpec))
-      } else if (latestTypedefName != "") {
-        typedef = Typedef(ctx.Identifier().getText, latestTypedefName)
-      }
+    if (latestTypedefName == "" && latestTypeSpec != null) {
+      typedef = Typedef(ctx.Identifier().getText, translateTypeSpec(latestTypeSpec))
+    } else if (latestTypedefName != "") {
+      typedef = Typedef(ctx.Identifier().getText, latestTypedefName)
     }
     latestTypedefName = ctx.Identifier().getText
   }
