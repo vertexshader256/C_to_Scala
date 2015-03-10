@@ -12,7 +12,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   var struct: Struct = null
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   
-  val typedefNames = ListBuffer[String]()
+  var latestTypedefName = ""
   val directDeclarators = ListBuffer[String]()
   val explicitInitValues = ListBuffer[String]()
   var latestStorageSpecifier = ""
@@ -30,7 +30,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     latestTypeSpec = null
     currentTypeSpec = null
     isArray = false
-    typedefNames.clear
+    latestTypedefName = ""
     
     super.visitDeclaration(ctx)
     
@@ -44,7 +44,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     } else if (enumeration != null) {
         results += "type " + enumeration.name + " = Int"
         enumeration.enumerators.foreach{enum =>
-          results += ("val " + enum.name + ": " + typedefNames(0) + " = " + enum.expression)
+          results += ("val " + enum.name + ": " + enumeration.name + " = " + enum.expression)
       }
     } else if (typedef != null) {
       results += "type " + typedef.name + " = " + typedef.expr + "\n"
@@ -66,7 +66,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     latestDirectDeclarator = ctx.getText
     directDeclarators += ctx.getText
     super.visitDirectDeclarator(ctx)
-    typedef = Typedef(latestDirectDeclarator, "Array[" + typedefNames(0) + "]")
+    typedef = Typedef(latestDirectDeclarator, "Array[" + latestTypedefName + "]")
   }
   
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
@@ -82,15 +82,15 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     }
   }
    
-  override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
-    typedefNames += ctx.Identifier().getText
+  override def visitTypedefName(ctx: CParser.TypedefNameContext) = { 
     if (!isArray) {
-      if (typedefNames.size == 1 && latestTypeSpec != null) {
-        typedef = Typedef(typedefNames(0), translateTypeSpec(latestTypeSpec))
-      } else if (typedefNames.size == 2) {
-        typedef = Typedef(typedefNames(1), typedefNames(0))
+      if (latestTypedefName == "" && latestTypeSpec != null) {
+        typedef = Typedef(ctx.Identifier().getText, translateTypeSpec(latestTypeSpec))
+      } else if (latestTypedefName != "") {
+        typedef = Typedef(ctx.Identifier().getText, latestTypedefName)
       }
     }
+    latestTypedefName = ctx.Identifier().getText
   }
     
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
@@ -116,5 +116,4 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
     latestStorageSpecifier = ctx.getText
   }
-
 }
