@@ -36,7 +36,6 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
     var result = "def " + functionName + "(" + params + "): " + returnType + " = {"
     contents.foreach{content => result += content.trim}
     result += "}"
-    println(result)
     results += result
     results.toList
   }

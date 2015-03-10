@@ -29,6 +29,18 @@ class Function extends FlatSpec with ShouldMatchers {
     convertedToScala("LAT blah(long x) {}").head should equal("def blah(x: Long): LAT = {}")
   }
   
+  "Two simple functions" should "convert correctly" in {
+
+    convertedToScala("LAT blah(long x) {}; float blah(LATLON x) {};") should equal(Array("def blah(x: Long): LAT = {}",
+                                                                                         "def blah(x: LATLON): Float = {}"))
+  }
+  
+  "Two simple functions with simple contents" should "convert correctly" in {
+
+    convertedToScala("LAT blah(long x) {int i;}; float blah(LATLON x) {int j;};") should equal(Array("def blah(x: Long): LAT = {var i: Int = 0}",
+                                                                                                     "def blah(x: LATLON): Float = {var j: Int = 0}"))
+  }
+  
   "A simple function with contents" should "convert correctly" in {
 
     convertedToScala("LAT blah(long x) {int i;}").head should equal("def blah(x: Long): LAT = {var i: Int = 0}")

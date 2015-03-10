@@ -17,6 +17,8 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     latestTypeSpec = null
     hasStorageSpecifier = false
     typedefNames.clear
+    directDeclarators.clear
+    explicitInitValues.clear
     
     super.visitDeclaration(ctx)
     
@@ -74,7 +76,6 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
     results ++= new FunctionConverter(cTypes).visitFunctionDefinition(ctx)
-    super.visitFunctionDefinition(ctx)
   }
  
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {

@@ -101,9 +101,9 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     super.visitTypeSpecifier(ctx)
       
-      if (specifierQualifierLevel == 1) {
-        currentTypeSpec = ctx
-      } 
+    if (specifierQualifierLevel == 1) {
+      currentTypeSpec = ctx
+    } 
     null
   }
  
