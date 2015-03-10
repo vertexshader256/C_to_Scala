@@ -39,6 +39,14 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
           }
         }.reduce(_ + ", " + _) + ")"
         results += "var " + decl + " = " + defaults + "\n"
+      } else if (directDeclarators.size == 1) {
+        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(translateTypeSpec(latestTypeSpec))(translateTypeSpec(latestTypeSpec)))
+        val default = if (!explicitInitValues.isEmpty) {
+            explicitInitValues(0)
+          } else {
+            baseTypeDefault
+          } 
+        results += "var " + directDeclarators(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + default + "\n"
       } else if (typedefNames.size == 1) {
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
         results += "var " + typedefNames(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + baseTypeDefault + "\n"
