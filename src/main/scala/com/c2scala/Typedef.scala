@@ -13,11 +13,9 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   
   var latestTypedefName = ""
-  val directDeclarators = ListBuffer[String]()
   val explicitInitValues = ListBuffer[String]()
   var latestStorageSpecifier = ""
   var latestTypeSpec: CParser.TypeSpecifierContext = null
-  var latestDirectDeclarator = ""
   
   var typedef: Typedef = null
   
@@ -52,21 +50,15 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     } 
   }
   
-  override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
-    directDeclarators.clear
-    super.visitInitDeclaratorList(ctx)
-  }
-  
   override def visitInitializer(ctx: CParser.InitializerContext) = {
     explicitInitValues += ctx.getText
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     isArray = true
-    latestDirectDeclarator = ctx.getText
-    directDeclarators += ctx.getText
+    typedef = Typedef(ctx.getText, "Array[" + latestTypedefName + "]")
     super.visitDirectDeclarator(ctx)
-    typedef = Typedef(latestDirectDeclarator, "Array[" + latestTypedefName + "]")
+    
   }
   
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
@@ -95,9 +87,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     super.visitTypeSpecifier(ctx)
-    if (ctx.typedefName() == null) {
-      latestTypeSpec = ctx
-    }
+    latestTypeSpec = ctx
   }
     
   override def visitEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
