@@ -6,6 +6,8 @@ import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
 import scala.collection.mutable.HashMap
 
+case class Typedef(name: String, expr: String)
+
 class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Unit](cTypes) {
   var struct: Struct = null
   var currentTypeSpec: CParser.TypeSpecifierContext = null
@@ -16,6 +18,8 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   var latestStorageSpecifier = ""
   var latestTypeSpec: CParser.TypeSpecifierContext = null
   var latestDirectDeclarator = ""
+  
+  var typedef: Typedef = null
   
   var latestArraySize = 0
   var isArray = false
@@ -37,22 +41,15 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
       }
       result += "\n}"
       results += result
-    } else if (isArray && typedefNames.size == 1) {
-      results += "type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-    } else if (enumeration == null) {
-      if (typedefNames.size == 1) {
-        results += "type " + typedefNames(0) + " = " + translateTypeSpec(latestTypeSpec) + "\n"
-        cTypes += typedefNames(0) -> latestTypeSpec.getText
-      } else if (typedefNames.size == 2) {
-        results += "type " + typedefNames(1) + " = " + typedefNames(0) + "\n"
-        cTypes += typedefNames(1) -> typedefNames(0)
-      }
     } else if (enumeration != null) {
         results += "type " + enumeration.name + " = Int"
         enumeration.enumerators.foreach{enum =>
           results += ("val " + enum.name + ": " + typedefNames(0) + " = " + enum.expression)
       }
-    }
+    } else if (typedef != null) {
+      results += "type " + typedef.name + " = " + typedef.expr + "\n"
+      cTypes += typedef.name -> typedef.expr
+    } 
   }
   
   override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
@@ -69,6 +66,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     latestDirectDeclarator = ctx.getText
     directDeclarators += ctx.getText
     super.visitDirectDeclarator(ctx)
+    typedef = Typedef(latestDirectDeclarator, "Array[" + typedefNames(0) + "]")
   }
   
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
@@ -86,6 +84,13 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
    
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
     typedefNames += ctx.Identifier().getText
+    if (!isArray) {
+      if (typedefNames.size == 1 && latestTypeSpec != null) {
+        typedef = Typedef(typedefNames(0), translateTypeSpec(latestTypeSpec))
+      } else if (typedefNames.size == 2) {
+        typedef = Typedef(typedefNames(1), typedefNames(0))
+      }
+    }
   }
     
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
