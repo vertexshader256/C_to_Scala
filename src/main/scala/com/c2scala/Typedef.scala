@@ -10,11 +10,9 @@ case class Typedef(name: String, expr: String)
 
 class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Unit](cTypes) {
   var struct: Struct = null
-  var currentTypeSpec: CParser.TypeSpecifierContext = null
   
-  var latestTypedefName = ""
   var latestStorageSpecifier = ""
-  var latestTypeSpec: CParser.TypeSpecifierContext = null
+  var typeSpecs = ListBuffer[CParser.TypeSpecifierContext]()
   
   var typedef: Typedef = null
   
@@ -23,10 +21,8 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
     latestStorageSpecifier = ""
-    latestTypeSpec = null
-    currentTypeSpec = null
-    latestTypedefName = ""
-    
+    typeSpecs.clear
+
     super.visitDeclaration(ctx)
     
     if (struct != null) {
@@ -48,7 +44,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-    typedef = Typedef(ctx.getText, "Array[" + latestTypedefName + "]")
+    typedef = Typedef(ctx.getText, "Array[" + typeSpecs(0).getText + "]")
     super.visitDirectDeclarator(ctx)
   }
   
@@ -64,19 +60,17 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
       }
     }
   }
-   
-  override def visitTypedefName(ctx: CParser.TypedefNameContext) = { 
-    if (latestTypedefName == "" && latestTypeSpec != null) {
-      typedef = Typedef(ctx.Identifier().getText, translateTypeSpec(latestTypeSpec))
-    } else if (latestTypedefName != "") {
-      typedef = Typedef(ctx.Identifier().getText, latestTypedefName)
-    }
-    latestTypedefName = ctx.Identifier().getText
-  }
-    
+
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     super.visitTypeSpecifier(ctx)
-    latestTypeSpec = ctx
+    if (ctx.getText != "unsigned") {
+      typeSpecs += ctx
+    }
+    
+    if (typeSpecs.size == 2) {
+      typedef = Typedef(typeSpecs(1).getText, translateTypeSpec(typeSpecs(0)))
+    }
+    
   }
     
   override def visitEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
