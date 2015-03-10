@@ -12,6 +12,10 @@ class Statement extends FlatSpec with ShouldMatchers {
     convertedToScala("int blah = 5;").head should equal("var blah: Int = 5")
   }
   
+  "A const integer with initial value" should "convert correctly" in {
+    convertedToScala("const int blah = 5;").head should equal("val blah: Int = 5")
+  }
+  
   "A simple statement with custom type" should "convert correctly" in {
     convertedToScala("LATLON blah;").head should equal("var blah: LATLON = null")
   }
