@@ -30,9 +30,8 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
     
     super.visitDeclaration(ctx)
     
-    if (struct != null && !typedefNames.isEmpty) {
-      var result = "class " + typedefNames(0) + " {\n"
-      //structDeclarations.foreach(println)
+    if (struct != null) {
+      var result = "class " + struct.name + " {\n"
       if (!struct.structDecl.isEmpty) {
         result += struct.structDecl.map("  " + _).reduce{_ + "\n" + _}
       }

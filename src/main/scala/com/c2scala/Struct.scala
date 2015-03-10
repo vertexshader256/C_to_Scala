@@ -6,9 +6,7 @@ import scala.collection.mutable.HashMap
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
 
-trait Struct {
-  val structDecl: ListBuffer[String]
-}
+case class Struct(name: String, structDecl: Seq[String])
 
 class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Struct](cTypes) {
   var declarationHasStruct = false
@@ -27,6 +25,8 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
   var islatestStructDecArray = false
   
    override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
+    import scala.collection.JavaConverters._
+    
     declarationHasStruct = true
     structDeclarations.clear
     currentTypeSpec = null
@@ -34,7 +34,8 @@ class StructConverter(cTypes: HashMap[String, String]) extends ChainListener[Str
     
     super.visitStructOrUnionSpecifier(ctx)
     
-    new Struct { val structDecl = structDeclarations }
+    val typeDefName = ctx.getParent.getParent.getParent.children.asScala.last.getText
+    Struct(typeDefName, structDeclarations)
   }
 
    override def aggregateResult(aggregate: Struct, nextResult: Struct): Struct = {
