@@ -31,10 +31,13 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
     
     super.visitFunctionDefinition(ctx)
 
-    //println(ctx.getText)
     val params = if (!parameters.isEmpty) parameters.map(_.toString).reduce(_ + ", " + _) else ""
     var result = "def " + functionName + "(" + params + "): " + returnType + " = {"
-    contents.foreach{content => result += content.trim}
+    val contentStrings = contents.map{content => content.trim}
+    if (contentStrings.size > 1)
+      result += contentStrings.reduce(_ + "; " + _) // separate with semicolon for now
+    else if (contentStrings.size == 1)
+      result += contents(0).trim
     result += "}"
     results += result
     results.toList
@@ -47,6 +50,11 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
       latestParamTypeSpec = ctx
     }
     super.visitTypeSpecifier(ctx)
+    Nil
+  }
+  
+  override def visitStatement(ctx: CParser.StatementContext) = {
+    contents += new StatementConverter(cTypes).visitStatement(ctx).statement
     Nil
   }
   

@@ -52,7 +52,10 @@ class Function extends FlatSpec with ShouldMatchers {
   }
   
   "A simple function with an assignment operator" should "convert correctly" in {
-
     convertedToScala("int blah(long x) {x += y;}").head should equal("def blah(x: Long): Int = {x += y}")
+  }
+  
+  "A simple function with an two assignment operators" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x += y; x += z;}").head should equal("def blah(x: Long): Int = {x += y; x += z}")
   }
 }
