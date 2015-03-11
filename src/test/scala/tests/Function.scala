@@ -50,4 +50,9 @@ class Function extends FlatSpec with ShouldMatchers {
 
     convertedToScala("LAT blah(long x) {LATLON i;}").head should equal("def blah(x: Long): LAT = {var i: LATLON = null}")
   }
+  
+  "A simple function with an assignment operator" should "convert correctly" in {
+
+    convertedToScala("int blah(long x) {x += y;}").head should equal("def blah(x: Long): Int = {x += y}")
+  }
 }
