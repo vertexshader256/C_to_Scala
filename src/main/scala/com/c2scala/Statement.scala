@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
+import org.antlr.v4.runtime.tree.TerminalNode
 
 case class Statement(statement: String)
 
@@ -42,12 +43,23 @@ class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[
   override def visitAssignmentExpression(ctx: CParser.AssignmentExpressionContext) = {
     import scala.collection.JavaConverters._
     
-    if (ctx.assignmentExpression() != null) {
-      val childrenText = ctx.children.asScala.map(_.getText)
-      assignmentExpression = childrenText.reduce(_ + " " + _)
+    def getAllChildren(acc: List[TerminalNode], ctx: ParseTree): List[TerminalNode] = {
+      if (ctx.getChildCount == 0) {
+        List(ctx.asInstanceOf[TerminalNode])
+      } else {
+        val children = ListBuffer[ParseTree]()
+        val all = ListBuffer[ParseTree]()
+        var i = 0
+        while (ctx.getChild(i) != null) {
+          children += ctx.getChild(i)
+          i += 1
+        }
+        children.flatMap{ child => getAllChildren(acc, child)}.toList
+      }
     }
-      
-    super.visitAssignmentExpression(ctx)
+
+    assignmentExpression = getAllChildren(Nil, ctx).map(_.getText).reduce(_ + " " + _)
+
     null
   }
 

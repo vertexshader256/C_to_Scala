@@ -58,4 +58,20 @@ class Function extends FlatSpec with ShouldMatchers {
   "A simple function with an two assignment operators" should "convert correctly" in {
     convertedToScala("int blah(long x) {x += y; x += z;}").head should equal("def blah(x: Long): Int = {x += y; x += z}")
   }
+  
+  "A simple function with a complex assignment" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x = 1 + 2 + 3;}").head should equal("def blah(x: Long): Int = {x = 1 + 2 + 3}")
+  }
+  
+  "A simple function with a more complex assignment" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x = 1 - 2 + 3 / 4 * 5;}").head should equal("def blah(x: Long): Int = {x = 1 - 2 + 3 / 4 * 5}")
+  }
+  
+  "A simple function with a more complex assignment with a variable ref" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x = z - 2 + y / 4 * u;}").head should equal("def blah(x: Long): Int = {x = z - 2 + y / 4 * u}")
+  }
+  
+//  "A simple function with a more complex assignment with a struct ref" should "convert correctly" in {
+//    convertedToScala("int blah(long x) {x = z - 2 + y.x / 4 * u;}").head should equal("def blah(x: Long): Int = {x = z - 2 + y.x / 4 * u}")
+//  }
 }
