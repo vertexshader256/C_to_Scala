@@ -8,7 +8,7 @@ import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
 
 
-class AssignmentExpressionConverter(cTypes: HashMap[String, String]) extends ChainListener[String](cTypes) {
+class ExpressionConverter(cTypes: HashMap[String, String]) extends ChainListener[String](cTypes) {
   var assignmentExpression = ""
   var assignmentOperator = ""
   var unaryExpression = ""
@@ -25,8 +25,8 @@ class AssignmentExpressionConverter(cTypes: HashMap[String, String]) extends Cha
     }
   }
   
-  override def visitAssignmentExpression(ctx: CParser.AssignmentExpressionContext) = {
-    super.visitAssignmentExpression(ctx)
+  override def visitExpression(ctx: CParser.ExpressionContext) = {
+    super.visitExpression(ctx)
   }
   
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
@@ -41,7 +41,7 @@ class AssignmentExpressionConverter(cTypes: HashMap[String, String]) extends Cha
     }
     left + visit(ctx.multiplicativeExpression())
   }
-  
+    
   override def visitMultiplicativeExpression(ctx: CParser.MultiplicativeExpressionContext) = {
     val left = if (ctx.multiplicativeExpression() != null ) visit(ctx.multiplicativeExpression()) + " " + ctx.children.get(1).getText + " " else ""
     left + visit(ctx.castExpression())
@@ -50,6 +50,11 @@ class AssignmentExpressionConverter(cTypes: HashMap[String, String]) extends Cha
   override def visitRelationalExpression(ctx: CParser.RelationalExpressionContext) = {
     val left = if (ctx.relationalExpression() != null ) visit(ctx.relationalExpression()) + " " + ctx.children.get(1).getText + " " else ""
     left + visit(ctx.shiftExpression())
+  }
+  
+  override def visitEqualityExpression(ctx: CParser.EqualityExpressionContext) = {
+    val left = if (ctx.equalityExpression() != null ) visit(ctx.equalityExpression()) + " " + ctx.children.get(1).getText + " " else ""
+    left + visit(ctx.relationalExpression())
   }
   
   override def visitUnaryExpression(ctx: CParser.UnaryExpressionContext) = {

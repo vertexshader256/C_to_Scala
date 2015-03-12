@@ -98,4 +98,12 @@ class Function extends FlatSpec with ShouldMatchers {
   "A simple function with a complex greater than" should "convert correctly" in {
     convertedToScala("int blah() {test = 2 > (-X*90);}").head should equal("def blah(): Int = {test = 2 > (-X * 90)}")
   }
+  
+  "A simple equality statement" should "convert correctly" in {
+    convertedToScala("int blah() {x = 1 == 1;}").head should equal("def blah(): Int = {x = 1 == 1}")
+  }
+  
+//  "A simple IF statement" should "convert correctly" in {
+//    convertedToScala("int blah() {if (1 == 1) x = 2; else x = 3;}").head should equal("def blah(): Int = {if (1 == 1) x = 2 else x = 3}")
+//  }
 }

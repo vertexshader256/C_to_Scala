@@ -10,7 +10,8 @@ import org.antlr.v4.runtime.tree.TerminalNode
 case class Statement(statement: String)
 
 class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[Statement](cTypes) {
-  var assignmentExpression = ""
+  var expression = ""
+  var selectionStatement = ""
   var assignmentOperator = ""
   var unaryExpression = ""
   
@@ -26,8 +27,10 @@ class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[
   
   override def visitStatement(ctx: CParser.StatementContext) = {
     super.visitStatement(ctx)
-    println(assignmentExpression)
-    Statement(assignmentExpression)
+    if (expression != "")
+      Statement(expression)
+    else
+      Statement(selectionStatement)
   }
   
   override def visitUnaryExpression(ctx: CParser.UnaryExpressionContext) = {
@@ -40,10 +43,13 @@ class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[
     null
   }
   
-  override def visitAssignmentExpression(ctx: CParser.AssignmentExpressionContext) = {
-
-    assignmentExpression = new AssignmentExpressionConverter(cTypes).visitAssignmentExpression(ctx)
-
+  override def visitSelectionStatement(ctx: CParser.SelectionStatementContext) = {
+    selectionStatement = "if (" + visit(ctx.expression) + ") " + visit(ctx.statement.get(0))
+    null
+  }
+  
+  override def visitExpression(ctx: CParser.ExpressionContext) = {
+    expression = new ExpressionConverter(cTypes).visitExpression(ctx)
     null
   }
 
