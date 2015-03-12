@@ -53,7 +53,7 @@ object main {
               pw.println(line)
             } else if (line.contains("\"")){
               // extract file name, substract .h extension
-              includeFiles += line.subSequence(line.indexOf("\"") + 1, line.size - 3).toString
+              includeFiles += line.subSequence(line.indexOf("\"") + 1, line.size - 4).toString
             }
           } 
         } finally {
@@ -83,19 +83,22 @@ object main {
 
         println("RESULTS: ")
         
-        val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileName + ".scala"))
-        
-        resultWriter.println("package convertedCode\n\n")
-        includeFiles.foreach{x => resultWriter.println("import " + x)}
-        resultWriter.println("object " + fileNameWithoutExtension + " {\n")
-        visitor.results.foreach{line => resultWriter.println(line)}
-        resultWriter.println("}\n")
-        
-        resultWriter.flush
-        resultWriter.close
-        
-        val preprocessedFile = new File("preprocessed_" + fileName)
-        //preprocessedFile.delete()
+        if (visitor.results.size > 0) {
+          
+          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileName + ".scala"))
+          
+          resultWriter.println("package convertedCode\n\n")
+          includeFiles.foreach{x => resultWriter.println("import " + x + "._")}
+          resultWriter.println("object " + fileNameWithoutExtension + " {\n")
+          visitor.results.foreach{line => resultWriter.println(line)}
+          resultWriter.println("}\n")
+          
+          resultWriter.flush
+          resultWriter.close
+          
+          val preprocessedFile = new File("preprocessed_" + fileName)
+          //preprocessedFile.delete()
+        }
       }
     }   
 }

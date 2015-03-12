@@ -11,6 +11,7 @@ case class Enumerator(name: String, expression: String)
 
 class EnumConverter(cTypes: HashMap[String, String]) extends ChainListener[Enumeration](cTypes) {
   val enumerations = ListBuffer[Enumerator]()
+  var lastEnumConstant = "0"
   
   override def aggregateResult(aggregate: Enumeration, nextResult: Enumeration): Enumeration = {
     if (aggregate == null) {
@@ -35,6 +36,12 @@ class EnumConverter(cTypes: HashMap[String, String]) extends ChainListener[Enume
   override def visitEnumerator(ctx: CParser.EnumeratorContext) = {
     if (ctx.enumerationConstant() != null && ctx.constantExpression() != null) {
       enumerations += Enumerator(ctx.enumerationConstant().getText, ctx.constantExpression().getText)
+      if (ctx.constantExpression().getText forall Character.isDigit)
+        lastEnumConstant = ctx.constantExpression().getText
+    } else if (ctx.enumerationConstant() != null) {
+      val newEnumConstant = lastEnumConstant.toInt + 1
+      enumerations += Enumerator(ctx.enumerationConstant().getText, newEnumConstant.toString)
+      lastEnumConstant = newEnumConstant.toString
     }
     null
   }

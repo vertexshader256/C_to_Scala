@@ -35,13 +35,31 @@ class EnumTypedef extends FlatSpec with ShouldMatchers {
     val test = """typedef enum {
                     LINE_TYPE  = 0,
                     POINT_TYPE = LINE_TYPE,
-                    SQUARE_TYPE = 1
+                    SQUARE_TYPE
                   } OBSTACLE_TYPE;"""
 
     convertedToScala(test) should equal(Array("type OBSTACLE_TYPE = Int",
                                                                        "val LINE_TYPE: OBSTACLE_TYPE = 0",
                                                                        "val POINT_TYPE: OBSTACLE_TYPE = LINE_TYPE",
                                                                        "val SQUARE_TYPE: OBSTACLE_TYPE = 1"
+                                                                       ))
+  }
+  
+  "A complex enum typedef with implicit numbering" should "convert correctly" in {
+    val name = System.nanoTime
+    
+    val test = """typedef enum {
+                    LINE_TYPE  = 0,
+                    POINT_TYPE = LINE_TYPE,
+                    SQUARE_TYPE,
+                    OVAL_TYPE
+                  } OBSTACLE_TYPE;"""
+
+    convertedToScala(test) should equal(Array("type OBSTACLE_TYPE = Int",
+                                                                       "val LINE_TYPE: OBSTACLE_TYPE = 0",
+                                                                       "val POINT_TYPE: OBSTACLE_TYPE = LINE_TYPE",
+                                                                       "val SQUARE_TYPE: OBSTACLE_TYPE = 1",
+                                                                       "val OVAL_TYPE: OBSTACLE_TYPE = 2"
                                                                        ))
   }
 }

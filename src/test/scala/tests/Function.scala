@@ -16,6 +16,10 @@ class Function extends FlatSpec with ShouldMatchers {
     convertedToScala("float blah(int x) {return x;}").head should equal("def blah(x: Int): Float = {x}")
   }
   
+  "A function prototype" should "not output" in {
+    convertedToScala("float blah(int x);").size should equal(0)
+  }
+  
   "A simple function with a multiple primitive parameters" should "convert correctly" in {
     convertedToScala("float blah(int x, int y) {}").head should equal("def blah(x: Int, y: Int): Float = {}")
   }

@@ -8,6 +8,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   val typedefNames = ListBuffer[String]()
   val directDeclarators = ListBuffer[String]()
   val explicitInitValues = ListBuffer[String]()
+  var isFunctionPrototype = false
   var isTypedef = false
   var typeQualifier = ""
   var hasStorageSpecifier = false
@@ -28,7 +29,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
       val typedefConverter = new TypedefConverter(cTypes)
       typedefConverter.visit(ctx)
       results ++= typedefConverter.results
-    } else if (!hasStorageSpecifier) {
+    } else if (!hasStorageSpecifier && !isFunctionPrototype) {
       
       val qualifier = if (typeQualifier == "const") "val" else "var"
       
@@ -64,6 +65,10 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   
   override def visitTypeQualifier(ctx: CParser.TypeQualifierContext) = {
     typeQualifier =  ctx.getText
+  }
+  
+  override def visitParameterTypeList(ctx: CParser.ParameterTypeListContext) = {
+    isFunctionPrototype = true
   }
   
   override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {

@@ -45,7 +45,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     super.visitTypeSpecifier(ctx)
-    if (ctx.getText != "unsigned") {
+    if (ctx.getText != "unsigned" && ctx.getText != "signed") {
       typeSpecs += ctx
     }
     
