@@ -18,7 +18,7 @@ object visualize {
     val parser = new CParser(
               new CommonTokenStream(
                       new CLexer(
-                              new ANTLRInputStream("int blah(long x) {x += y;}"))));
+                              new ANTLRInputStream("int blah2(long x) {x = z - y.x;}"))));
     
       parser.setBuildParseTree(true);
 

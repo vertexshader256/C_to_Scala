@@ -41,24 +41,8 @@ class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[
   }
   
   override def visitAssignmentExpression(ctx: CParser.AssignmentExpressionContext) = {
-    import scala.collection.JavaConverters._
-    
-    def getAllChildren(acc: List[TerminalNode], ctx: ParseTree): List[TerminalNode] = {
-      if (ctx.getChildCount == 0) {
-        List(ctx.asInstanceOf[TerminalNode])
-      } else {
-        val children = ListBuffer[ParseTree]()
-        val all = ListBuffer[ParseTree]()
-        var i = 0
-        while (ctx.getChild(i) != null) {
-          children += ctx.getChild(i)
-          i += 1
-        }
-        children.flatMap{ child => getAllChildren(acc, child)}.toList
-      }
-    }
 
-    assignmentExpression = getAllChildren(Nil, ctx).map(_.getText).reduce(_ + " " + _)
+    assignmentExpression = new AssignmentExpressionConverter(cTypes).visitAssignmentExpression(ctx)
 
     null
   }

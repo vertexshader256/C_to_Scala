@@ -71,7 +71,31 @@ class Function extends FlatSpec with ShouldMatchers {
     convertedToScala("int blah(long x) {x = z - 2 + y / 4 * u;}").head should equal("def blah(x: Long): Int = {x = z - 2 + y / 4 * u}")
   }
   
-//  "A simple function with a more complex assignment with a struct ref" should "convert correctly" in {
-//    convertedToScala("int blah(long x) {x = z - 2 + y.x / 4 * u;}").head should equal("def blah(x: Long): Int = {x = z - 2 + y.x / 4 * u}")
-//  }
+  "A simple function with a struct assignment" should "convert correctly" in {
+    convertedToScala("int blah() {x.test = 2;}").head should equal("def blah(): Int = {x.test = 2}")
+  }
+  
+  "A simple function with a more complex assignment with a struct ref" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x = z - 2 + y.x / 4 * u;}").head should equal("def blah(x: Long): Int = {x = z - 2 + y.x / 4 * u}")
+  }
+  
+  "A simple function with a more complex assignment with a pointer struct ref" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x = z - 2 + y->x / 4 * u;}").head should equal("def blah(x: Long): Int = {x = z - 2 + y.x / 4 * u}")
+  }
+  
+  "A simple function with parenthesis" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x = (z - 2) + (y / 4) * u;}").head should equal("def blah(x: Long): Int = {x = (z - 2) + (y / 4) * u}")
+  }
+  
+  "A simple function with nested parenthesis" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x = ((z - 2) + (y / 4)) * u;}").head should equal("def blah(x: Long): Int = {x = ((z - 2) + (y / 4)) * u}")
+  }
+  
+  "A simple function with a greater than" should "convert correctly" in {
+    convertedToScala("int blah() {test = 2 > 4;}").head should equal("def blah(): Int = {test = 2 > 4}")
+  }
+  
+  "A simple function with a complex greater than" should "convert correctly" in {
+    convertedToScala("int blah() {test = 2 > (-X*90);}").head should equal("def blah(): Int = {test = 2 > (-X * 90)}")
+  }
 }
