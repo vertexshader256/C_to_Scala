@@ -54,7 +54,7 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
   }
   
   override def visitStatement(ctx: CParser.StatementContext) = {
-    contents += new StatementConverter(cTypes).visitStatement(ctx).statement
+    contents += new StatementConverter(cTypes).visit(ctx).statement
     Nil
   }
   

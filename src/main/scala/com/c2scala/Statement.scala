@@ -44,7 +44,10 @@ class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[
   }
   
   override def visitSelectionStatement(ctx: CParser.SelectionStatementContext) = {
-    selectionStatement = "if (" + visit(ctx.expression) + ") " + visit(ctx.statement.get(0))
+    selectionStatement = "if (" + new ExpressionConverter(cTypes).visitExpression(ctx.expression()) + ") " + new StatementConverter(cTypes).visit(ctx.statement.get(0)).statement
+    if (ctx.statement.size > 1) {
+      selectionStatement += " else " + new StatementConverter(cTypes).visit(ctx.statement.get(1)).statement
+    }
     null
   }
   

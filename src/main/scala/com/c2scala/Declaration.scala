@@ -26,7 +26,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
     
     if (isTypedef) {
       val typedefConverter = new TypedefConverter(cTypes)
-      typedefConverter.visitDeclaration(ctx)
+      typedefConverter.visit(ctx)
       results ++= typedefConverter.results
     } else if (!hasStorageSpecifier) {
       
@@ -92,7 +92,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   }
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-    results ++= new FunctionConverter(cTypes).visitFunctionDefinition(ctx)
+    results ++= new FunctionConverter(cTypes).visit(ctx)
   }
  
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {

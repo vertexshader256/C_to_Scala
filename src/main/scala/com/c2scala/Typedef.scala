@@ -56,15 +56,15 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   }
     
   override def visitEnumSpecifier(ctx: CParser.EnumSpecifierContext) = {
-    enumeration = new EnumConverter(cTypes).visitEnumSpecifier(ctx)
+    enumeration = new EnumConverter(cTypes).visit(ctx)
   }
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-    results ++= new FunctionConverter(cTypes).visitFunctionDefinition(ctx)
+    results ++= new FunctionConverter(cTypes).visit(ctx)
     super.visitFunctionDefinition(ctx)
   }
   
   override def visitStructOrUnionSpecifier(ctx: CParser.StructOrUnionSpecifierContext) = {
-    struct = new StructConverter(cTypes).visitStructOrUnionSpecifier(ctx)
+    struct = new StructConverter(cTypes).visit(ctx)
   }
 }
