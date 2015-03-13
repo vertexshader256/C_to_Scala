@@ -6,7 +6,7 @@ case class Parameter(name: String, paramType: String) {
   override def toString = name + ": " + paramType
 }
 
-class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[List[String]](cTypes) {
+class FunctionConverter(cTypes: HashMap[String, String], outputFunctionContents: Boolean) extends ChainListener[List[String]](cTypes) {
   var returnType = ""
   var functionName = ""
   var isWithinParameters = false
@@ -33,11 +33,13 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
 
     val params = if (!parameters.isEmpty) parameters.map(_.toString).reduce(_ + ", " + _) else ""
     var result = "def " + functionName + "(" + params + "): " + returnType + " = {"
-    val contentStrings = contents.map{content => content.trim}
-    if (contentStrings.size > 1)
-      result += contentStrings.reduce(_ + "; " + _) // separate with semicolon for now
-    else if (contentStrings.size == 1)
-      result += contents(0).trim
+    if (outputFunctionContents) {
+      val contentStrings = contents.map{content => content.trim}
+      if (contentStrings.size > 1)
+        result += contentStrings.reduce(_ + "; " + _) // separate with semicolon for now
+      else if (contentStrings.size == 1)
+        result += contents(0).trim
+    }
     result += "}"
     results += result
     results.toList
@@ -59,7 +61,7 @@ class FunctionConverter(cTypes: HashMap[String, String]) extends ChainListener[L
   }
   
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
-    val blah = new DeclarationConverter(cTypes)
+    val blah = new DeclarationConverter(cTypes, outputFunctionContents)
     blah.visitDeclaration(ctx)
     contents ++= blah.results.toList
     Nil

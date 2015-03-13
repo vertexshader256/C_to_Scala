@@ -3,7 +3,7 @@ package com.c2scala
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 
-class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListener[Unit](cTypes) {
+class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionContents: Boolean) extends ChainListener[Unit](cTypes) {
 
   val typedefNames = ListBuffer[String]()
   val directDeclarators = ListBuffer[String]()
@@ -97,7 +97,7 @@ class DeclarationConverter(cTypes: HashMap[String, String]) extends ChainListene
   }
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-    results ++= new FunctionConverter(cTypes).visit(ctx)
+    results ++= new FunctionConverter(cTypes, outputFunctionContents).visit(ctx)
   }
  
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {

@@ -78,7 +78,7 @@ object main {
         
         // This line prints the error
         val ctx = parser.compilationUnit();
-        val visitor = new DeclarationConverter(cTypes);
+        val visitor = new DeclarationConverter(cTypes, false);
         visitor.visit(ctx)
 
         println("RESULTS: ")

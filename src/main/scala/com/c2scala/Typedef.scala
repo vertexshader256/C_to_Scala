@@ -60,7 +60,7 @@ class TypedefConverter(cTypes: HashMap[String, String]) extends ChainListener[Un
   }
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
-    results ++= new FunctionConverter(cTypes).visit(ctx)
+    results ++= new FunctionConverter(cTypes, true).visit(ctx)
     super.visitFunctionDefinition(ctx)
   }
   

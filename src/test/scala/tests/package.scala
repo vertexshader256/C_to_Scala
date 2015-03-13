@@ -25,7 +25,7 @@ package object tests {
       val cTypes = HashMap[String, String]()
       // This line prints the error
       val ctx = parser.compilationUnit();
-      val visitor = new DeclarationConverter(cTypes);
+      val visitor = new DeclarationConverter(cTypes, true);
       visitor.visit(ctx);
       
       visitor.results.toList.flatMap{_.split("\n").map(_.trim)}.toArray
