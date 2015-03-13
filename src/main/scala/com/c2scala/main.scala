@@ -53,7 +53,7 @@ object main {
               pw.println(line)
             } else if (line.contains("\"")){
               // extract file name, substract .h extension
-              includeFiles += line.subSequence(line.indexOf("\"") + 1, line.size - 4).toString
+              includeFiles += line.split("\"")(1).reverse.drop(2).reverse
             }
           } 
         } finally {

@@ -26,6 +26,7 @@ class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor
   protected def translateTypeSpec(typeSpec: CParser.TypeSpecifierContext) = typeSpec.getText match {
     case "char" => "Char"
     case "float" => "Float"
+    case "double" => "Double"
     case "long" => "Long"
     case "short" => "Short"
     case "int" => "Int"
