@@ -45,7 +45,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
           }
         }.reduce(_ + ", " + _) + ")"
         results += qualifier + " " + decl + " = " + defaults + "\n"
-      } else if (directDeclarators.size == 1) {
+      } else if (directDeclarators.size == 1 && latestTypeSpec != null) {
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(translateTypeSpec(latestTypeSpec))(translateTypeSpec(latestTypeSpec)))
         val default = if (!explicitInitValues.isEmpty) {
             explicitInitValues(0)
@@ -53,7 +53,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
             baseTypeDefault
           } 
         results += qualifier + " " + directDeclarators(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + default + "\n"
-      } else if (typedefNames.size == 1) {
+      } else if (typedefNames.size == 1 && latestTypeSpec != null) {
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
         results += qualifier + " " + typedefNames(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + baseTypeDefault + "\n"
       } else if (typedefNames.size == 2) {

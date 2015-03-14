@@ -38,39 +38,43 @@ object main {
       } else {
         beforePreprocessingDir.listFiles().foreach(_.delete)
       }
+      cCodeDir.listFiles.foreach{x => println(x.getName)}
+      val grouped = cCodeDir.listFiles()
+                            .filter{file => (file.getName.contains(".c") || file.getName.contains(".h")) && !file.getName.contains("version") }
+                            .groupBy{file => file.getName.split('.')(0)}
+
+      // we're doing the most basic preprocessing - grouping the .c and .h together
       
-      for (cCodeFile <- cCodeDir.listFiles().filter{file => file.getName.endsWith(".h") || file.getName == "latlon_util.c"}) {
-        val fileName = cCodeFile.getName
-        val fileNameWithoutExtension = cCodeFile.getName.substring(0, cCodeFile.getName.lastIndexOf('.'))
-        val includeFiles = new ListBuffer[String]()
-        
-        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + fileName)
+      for ((name, files) <- grouped) {
+        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + name + ".c")
         val pw = new java.io.PrintWriter(beforePreFile)
-        println(beforePreFile.getAbsolutePath)
+        val includeFiles = new ListBuffer[String]()
+         
         try {
-          for (line <- Source.fromFile(cCodeFile.getAbsolutePath, "ISO-8859-1").getLines()) {
-            if (!line.contains("#include")) {
-              pw.println(line)
-            } else if (line.contains("\"")){
-              // extract file name, substract .h extension
-              includeFiles += line.split("\"")(1).reverse.drop(2).reverse
-            }
-          } 
+          for (file <- files.sortBy { file => file.getName }.reverse) {
+            for (line <- Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()) {
+              if (!line.contains("#include")) {
+                pw.println(line)
+              } else if (line.contains("\"")){
+                // extract file name, substract .h extension
+                includeFiles += line.split("\"")(1).reverse.drop(2).reverse
+              }
+            } 
+          }
         } finally {
-          pw.close
+            pw.close
         }
-        
+        println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + name)
         val rt = Runtime.getRuntime();
-        val proc = rt.exec("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + fileName)
+        val proc = rt.exec("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + name + ".c")
         
         // any error???
         val exitVal = proc.waitFor();
-        println("ExitValue: " + exitVal);
   
         val parser = new CParser(
             new CommonTokenStream(
                     new CLexer(
-                            new ANTLRFileStream("preprocessed_" + fileName))));
+                            new ANTLRFileStream("preprocessed_" + name + ".c"))));
   
         parser.setBuildParseTree(true);
   
@@ -85,18 +89,18 @@ object main {
         
         if (visitor.results.size > 0) {
           
-          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + fileName + ".scala"))
+          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + name + ".scala"))
           
           resultWriter.println("package convertedCode\n\n")
           includeFiles.foreach{x => resultWriter.println("import " + x + "._")}
-          resultWriter.println("object " + fileNameWithoutExtension + " {\n")
+          resultWriter.println("object " + name + " {\n")
           visitor.results.foreach{line => resultWriter.println(line)}
           resultWriter.println("}\n")
           
           resultWriter.flush
           resultWriter.close
           
-          val preprocessedFile = new File("preprocessed_" + fileName)
+          val preprocessedFile = new File("preprocessed_" + name)
           //preprocessedFile.delete()
         }
       }

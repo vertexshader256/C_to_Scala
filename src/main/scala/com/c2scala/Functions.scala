@@ -71,7 +71,10 @@ class FunctionConverter(cTypes: HashMap[String, String], outputFunctionContents:
     isWithinParameters = true
     super.visitParameterDeclaration(ctx)
       isWithinParameters = false
-    parameters += Parameter(ctx.declarator().getText, translateTypeSpec(latestParamTypeSpec))
+     
+    if (ctx.declarator() != null)
+      parameters += Parameter(ctx.declarator().getText, translateTypeSpec(latestParamTypeSpec))
+      
     Nil
   }
    
