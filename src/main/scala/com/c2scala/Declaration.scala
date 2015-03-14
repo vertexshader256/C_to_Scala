@@ -15,7 +15,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   var latestTypeSpec: CParser.TypeSpecifierContext = null
   var islatestStructDecArray = false
   var latestStructDecName = ""
-  var latestArraySize = 0
+  var latestArraySize = ""
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   var specifierQualifierLevel = 0
   var latestDirectDeclarator = ""
@@ -72,6 +72,8 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
       } else if (typedefNames.size == 2) {
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typedefNames(1))(typedefNames(1)))
         results += qualifier + " " + typedefNames(1) + ": " + typedefNames(0) + " = " + baseTypeDefault + "\n"
+      } else {
+        parseSimpleDecl()
       }
     } 
   }
@@ -86,27 +88,30 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     super.visitPrimaryExpression(ctx)
     if (ctx.expression() == null) { // is this the bottom of the tree?!
       latestArraySize = if (ctx.getText.contains("0x")) {
-        Integer.getInteger(ctx.getText.drop(2), 16)
-      } else if (ctx.getText forall Character.isDigit) {
-          ctx.getText.toInt
+        Integer.getInteger(ctx.getText.drop(2), 16).toString
       } else {
-        0
+        ctx.getText
       }
     }
   }
   
-  override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
-    latestStructDecName = ""
-    islatestStructDecArray = false
-    super.visitStructDeclaration(ctx)
-    if (islatestStructDecArray && latestArraySize != 0) {
+  def parseSimpleDecl() = {
+    if (islatestStructDecArray && latestArraySize != "") {
         results += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeSpec.getText) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
-    } else if (islatestStructDecArray && latestArraySize == 0) {
+    } else if (islatestStructDecArray && latestArraySize == "") {
         results += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
     } else if (currentTypeSpec != null) {
         val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(currentTypeSpec.getText)(currentTypeSpec.getText))
         results += "var " + convertTypeName(latestStructDecName, currentTypeSpec.getText) + ": " + translateTypeSpec(currentTypeSpec) + " = " + baseTypeDefault
     }
+  }
+  
+  
+  override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
+    latestStructDecName = ""
+    islatestStructDecArray = false
+    super.visitStructDeclaration(ctx)
+    parseSimpleDecl()
   }
   
   override def visitTypeQualifier(ctx: CParser.TypeQualifierContext) = {
@@ -129,7 +134,8 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     latestDirectDeclarator = ctx.getText
     islatestStructDecArray = true
-    directDeclarators += ctx.getText
+    if (!ctx.getParent.isInstanceOf[CParser.DirectDeclaratorContext])
+      directDeclarators += ctx.getText
     super.visitDirectDeclarator(ctx)
   }
      
@@ -141,7 +147,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     super.visitTypeSpecifier(ctx)
     
-    if (specifierQualifierLevel == 1) {
+    if (specifierQualifierLevel <= 1) {
       currentTypeSpec = ctx
     } 
     
