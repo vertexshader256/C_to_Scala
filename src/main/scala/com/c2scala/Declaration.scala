@@ -2,6 +2,7 @@ package com.c2scala
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
+import scala.util.Try
 
 class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionContents: Boolean) extends ChainListener[Unit](cTypes) {
 
@@ -9,21 +10,33 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   val directDeclarators = ListBuffer[String]()
   val explicitInitValues = ListBuffer[String]()
   var isFunctionPrototype = false
-  var isTypedef = false
   var typeQualifier = ""
   var hasStorageSpecifier = false
   var latestTypeSpec: CParser.TypeSpecifierContext = null
-    
+  var islatestStructDecArray = false
+  var latestStructDecName = ""
+  var latestArraySize = 0
+  var currentTypeSpec: CParser.TypeSpecifierContext = null
+  var specifierQualifierLevel = 0
+  var latestDirectDeclarator = ""
+  
+  def typedefLookahead(ctx: CParser.DeclarationContext): Boolean = {
+    val checkTypedef = Try(ctx.declarationSpecifiers().declarationSpecifier().get(0).getText == "typedef")
+    checkTypedef.getOrElse(false)
+  }
+  
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
-    isTypedef = false
     latestTypeSpec = null
     hasStorageSpecifier = false
     typeQualifier = ""
     typedefNames.clear
     directDeclarators.clear
     explicitInitValues.clear
+      
+    val isTypedef = typedefLookahead(ctx)
     
-    super.visitDeclaration(ctx)
+    if (!isTypedef)
+      super.visitDeclaration(ctx)
     
     if (isTypedef) {
       val typedefConverter = new TypedefConverter(cTypes)
@@ -63,6 +76,39 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     } 
   }
   
+  override def visitSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
+    specifierQualifierLevel += 1
+    super.visitSpecifierQualifierList(ctx)
+    specifierQualifierLevel -= 1
+  }
+  
+  override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
+    super.visitPrimaryExpression(ctx)
+    if (ctx.expression() == null) { // is this the bottom of the tree?!
+      latestArraySize = if (ctx.getText.contains("0x")) {
+        Integer.getInteger(ctx.getText.drop(2), 16)
+      } else if (ctx.getText forall Character.isDigit) {
+          ctx.getText.toInt
+      } else {
+        0
+      }
+    }
+  }
+  
+  override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
+    latestStructDecName = ""
+    islatestStructDecArray = false
+    super.visitStructDeclaration(ctx)
+    if (islatestStructDecArray && latestArraySize != 0) {
+        results += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getTypeDefault(currentTypeSpec.getText) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+    } else if (islatestStructDecArray && latestArraySize == 0) {
+        results += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+    } else if (currentTypeSpec != null) {
+        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(currentTypeSpec.getText)(currentTypeSpec.getText))
+        results += "var " + convertTypeName(latestStructDecName, currentTypeSpec.getText) + ": " + translateTypeSpec(currentTypeSpec) + " = " + baseTypeDefault
+    }
+  }
+  
   override def visitTypeQualifier(ctx: CParser.TypeQualifierContext) = {
     typeQualifier =  ctx.getText
   }
@@ -81,16 +127,24 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
+    latestDirectDeclarator = ctx.getText
+    islatestStructDecArray = true
     directDeclarators += ctx.getText
     super.visitDirectDeclarator(ctx)
   }
      
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
+        latestStructDecName = ctx.Identifier().getText
     typedefNames += ctx.Identifier().getText
   }
     
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
     super.visitTypeSpecifier(ctx)
+    
+    if (specifierQualifierLevel == 1) {
+      currentTypeSpec = ctx
+    } 
+    
     if (ctx.typedefName() == null) {
       latestTypeSpec = ctx
     }
@@ -102,9 +156,6 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
  
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
     hasStorageSpecifier = true
-    if (ctx.getText == "typedef") {
-      isTypedef = true
-    }
   }
 
 }
