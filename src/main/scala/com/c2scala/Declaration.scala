@@ -35,14 +35,15 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
       
     val isTypedef = typedefLookahead(ctx)
     
-    if (!isTypedef)
+    if (!isTypedef) {
       super.visitDeclaration(ctx)
-    
-    if (isTypedef) {
+    } else {
       val typedefConverter = new TypedefConverter(cTypes)
       typedefConverter.visit(ctx)
       results ++= typedefConverter.results
-    } else if (!hasStorageSpecifier && !isFunctionPrototype) {
+    }
+    
+    if (!isTypedef && !hasStorageSpecifier && !isFunctionPrototype) {
       
       val qualifier = if (typeQualifier == "const") "val" else "var"
       

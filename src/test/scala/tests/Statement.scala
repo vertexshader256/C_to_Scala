@@ -28,6 +28,10 @@ class Statement extends FlatSpec with ShouldMatchers {
     convertedToScala("X blah[Y];").head should equal("var blah: Array[X] = Array.fill(Y)(null)")
   }
   
+  "Multiple simple statements" should "convert correctly" in {
+    convertedToScala("X blah[Y]; X Z;") should equal(Array("var blah: Array[X] = Array.fill(Y)(null)", "var Z: X = null"))
+  }
+  
   "Two variables of a primitive type being simultaneously declared" should "convert correctly" in {
     convertedToScala("float x, y;").head should equal("var (x: Float, y: Float) = (0.0, 0.0)")
   }
