@@ -14,6 +14,7 @@ import java.util._
 import java.io._
 import scala.io.Source
 import scala.collection.mutable.HashMap
+import java.nio.file.Files
 
 object main {
   
@@ -39,42 +40,69 @@ object main {
         beforePreprocessingDir.listFiles().foreach(_.delete)
       }
       cCodeDir.listFiles.foreach{x => println(x.getName)}
-      val grouped = cCodeDir.listFiles()
+      val codeFiles = cCodeDir.listFiles()
                             .filter{file => (file.getName.contains(".c") || file.getName.contains(".h")) && !file.getName.contains("version") }
-                            .groupBy{file => file.getName.split('.')(0)}
+                            //.groupBy{file => file.getName.split('.')(0)}
 
       // we're doing the most basic preprocessing - grouping the .c and .h together
       
-      for ((name, files) <- grouped) {
-        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + name + ".c")
+      for (file <- codeFiles) {
+        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
+        val newCopy = new File(file.getName)
+        Files.copy( file.toPath, beforePreFile.toPath );
+      }
+      
+      val runGcc = new File("rungcc.bat")
+      val gccwriter = new java.io.PrintWriter(runGcc)
+      val includeFiles = new ListBuffer[String]()
+      
+      for (file <- codeFiles) {
+        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
         val pw = new java.io.PrintWriter(beforePreFile)
-        val includeFiles = new ListBuffer[String]()
          
         try {
-          for (file <- files.sortBy { file => file.getName }.reverse) {
             for (line <- Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()) {
-              if (!line.contains("#include")) {
+              //if (!line.contains("#include")) {
                 pw.println(line)
-              } else if (line.contains("\"")){
+              if (line.contains("\"")){
                 // extract file name, substract .h extension
                 includeFiles += line.split("\"")(1).reverse.drop(2).reverse
               }
             } 
-          }
         } finally {
             pw.close
         }
-        println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + name)
-        val rt = Runtime.getRuntime();
-        val proc = rt.exec("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + name + ".c")
+        //println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + file.getName)
         
+       // val newCopy = new File(beforePreFile.getName)
+        //Files.copy( beforePreFile.toPath, newCopy.toPath );
+        
+        
+        gccwriter.println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + file.getName)
+      }
+      
+        val rt = Runtime.getRuntime();
+        gccwriter.close
+        gccwriter.flush()
+        val proc = rt.exec("cmd /c start " + runGcc.getAbsolutePath)
+        //runGcc.delete
+        //newCopy.delete()
         // any error???
         val exitVal = proc.waitFor();
+        Thread.sleep(1000);
+        
+        
+      for (file <- codeFiles) { 
+        val newFile = new File("preprocessed_" + file.getName)
+        do {
+          
+        } while (!newFile.exists());
+
   
         val parser = new CParser(
             new CommonTokenStream(
                     new CLexer(
-                            new ANTLRFileStream("preprocessed_" + name + ".c"))));
+                            new ANTLRFileStream("preprocessed_" + file.getName))));
   
         parser.setBuildParseTree(true);
   
@@ -89,18 +117,18 @@ object main {
         
         if (visitor.results.size > 0) {
           
-          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + name + ".scala"))
+          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + file.getName + ".scala"))
           
           resultWriter.println("package convertedCode\n\n")
           includeFiles.foreach{x => resultWriter.println("import " + x + "._")}
-          resultWriter.println("object " + name + " {\n")
+          resultWriter.println("object " + file.getName + " {\n")
           visitor.results.foreach{line => resultWriter.println(line)}
           resultWriter.println("}\n")
           
           resultWriter.flush
           resultWriter.close
           
-          val preprocessedFile = new File("preprocessed_" + name)
+          val preprocessedFile = new File("preprocessed_" + file.getName)
           //preprocessedFile.delete()
         }
       }
