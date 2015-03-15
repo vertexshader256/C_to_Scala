@@ -44,8 +44,6 @@ object main {
                             .filter{file => (file.getName.contains(".c") || file.getName.contains(".h")) && !file.getName.contains("version") }
                             //.groupBy{file => file.getName.split('.')(0)}
 
-      // we're doing the most basic preprocessing - grouping the .c and .h together
-      
       for (file <- codeFiles) {
         val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
         val newCopy = new File(file.getName)
@@ -54,54 +52,63 @@ object main {
       
       val runGcc = new File("rungcc.bat")
       val gccwriter = new java.io.PrintWriter(runGcc)
-      val includeFiles = new ListBuffer[String]()
-      
+      for (file <- codeFiles) {
+        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
+        gccwriter.println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + file.getName)
+      }
+      gccwriter.println("exit")
+      gccwriter.close
+      gccwriter.flush()      
+            
       for (file <- codeFiles) {
         val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
         val pw = new java.io.PrintWriter(beforePreFile)
-         
         try {
             for (line <- Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()) {
-              //if (!line.contains("#include")) {
+              if (!line.contains("#include")) {
                 pw.println(line)
-              if (line.contains("\"")){
-                // extract file name, substract .h extension
-                includeFiles += line.split("\"")(1).reverse.drop(2).reverse
-              }
+              }   
             } 
         } finally {
             pw.close
         }
-        //println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + file.getName)
-        
-       // val newCopy = new File(beforePreFile.getName)
-        //Files.copy( beforePreFile.toPath, newCopy.toPath );
-        
-        
-        gccwriter.println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + file.getName)
       }
-      gccwriter.println("exit")
-        val rt = Runtime.getRuntime();
-        gccwriter.close
-        gccwriter.flush()
-        val proc = rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath)
-        //runGcc.delete
-        //newCopy.delete()
-        // any error???
-        val exitVal = proc.waitFor();
-        runGcc.delete
+ 
+      val rt = Runtime.getRuntime();
+      rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
+      
+      val preprocessed = codeFiles.map{file => new File("preprocessed_" + file.getName)}      
+      val linecountsNoInclues = preprocessed map{file => file.getName -> Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().size} toMap
+      
+      preprocessed.foreach{_.delete()}
+      
+      rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
+      
+      val includeFiles = new ListBuffer[String]()
+      for (file <- codeFiles) {
+        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
+        val pw = new java.io.PrintWriter(beforePreFile)
+        try {
+          val rawLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()
+          val startReading = rawLines.size - linecountsNoInclues("preprocessed_" + file.getName)
+          val lines = rawLines.drop(startReading)
+          
+          for (line <- lines) {
+            pw.println(line)
+          } 
+        } finally {
+            pw.close
+        }
+      }
+  
+      runGcc.delete
         
       for (file <- codeFiles) { 
         val newFile = new File("preprocessed_" + file.getName)
-        do {
-          
-        } while (!newFile.exists());
-
   
         val parser = new CParser(
             new CommonTokenStream(
-                    new CLexer(
-                            new ANTLRFileStream("preprocessed_" + file.getName))));
+            new CLexer(new ANTLRFileStream("preprocessed_" + file.getName))));
   
         parser.setBuildParseTree(true);
   
