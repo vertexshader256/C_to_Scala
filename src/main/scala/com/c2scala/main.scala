@@ -80,17 +80,16 @@ object main {
         
         gccwriter.println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + file.getName)
       }
-      
+      gccwriter.println("exit")
         val rt = Runtime.getRuntime();
         gccwriter.close
         gccwriter.flush()
-        val proc = rt.exec("cmd /c start " + runGcc.getAbsolutePath)
+        val proc = rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath)
         //runGcc.delete
         //newCopy.delete()
         // any error???
         val exitVal = proc.waitFor();
-        Thread.sleep(1000);
-        
+        runGcc.delete
         
       for (file <- codeFiles) { 
         val newFile = new File("preprocessed_" + file.getName)
