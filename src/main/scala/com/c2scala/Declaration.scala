@@ -11,7 +11,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   val explicitInitValues = ListBuffer[String]()
   var isFunctionPrototype = false
   var typeQualifier = ""
-  var hasStorageSpecifier = false
+  var latestStorageSpecifier = ""
   var latestTypeSpec: CParser.TypeSpecifierContext = null
   var islatestStructDecArray = false
   var latestStructDecName = ""
@@ -27,7 +27,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   
   override def visitDeclaration(ctx: CParser.DeclarationContext) = {
     latestTypeSpec = null
-    hasStorageSpecifier = false
+    latestStorageSpecifier = ""
     typeQualifier = ""
     typedefNames.clear
     directDeclarators.clear
@@ -43,9 +43,10 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
       results ++= typedefConverter.results
     }
     
-    if (!isTypedef && !hasStorageSpecifier && !isFunctionPrototype) {
+    if (!isTypedef && (latestStorageSpecifier == "" || latestStorageSpecifier == "static")  && !isFunctionPrototype) {
       
-      val qualifier = if (typeQualifier == "const") "val" else "var"
+      val scope = if (latestStorageSpecifier == "static") "private" else ""
+      val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
       
       if (directDeclarators.size > 1) {
         val typeName = if (!typedefNames.isEmpty) typedefNames(0) else translateTypeSpec(latestTypeSpec)
@@ -162,7 +163,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
  
   override def visitStorageClassSpecifier(ctx: CParser.StorageClassSpecifierContext) = {
-    hasStorageSpecifier = true
+    latestStorageSpecifier = ctx.getText
   }
 
 }

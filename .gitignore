@@ -16,8 +16,11 @@ dist
 /.settings
 /bin/
 /app/assets/mops
-/preprocessed_*
+/preprocessed
 /convertedCode
 /beforePre
+/extracted
+/noincludes
+/postprocessed
 
 

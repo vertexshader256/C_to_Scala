@@ -39,26 +39,60 @@ object main {
       } else {
         beforePreprocessingDir.listFiles().foreach(_.delete)
       }
+      
+      val noIncludesDir = new File("noincludes")
+      if (!noIncludesDir.exists) {
+        noIncludesDir.mkdir
+      } else {
+        noIncludesDir.listFiles().foreach(_.delete)
+      }
+      
+      val extractedDir = new File("extracted")
+      if (!extractedDir.exists) {
+        extractedDir.mkdir
+      } else {
+        extractedDir.listFiles().foreach(_.delete)
+      }
+      
+      val preprocessedDir = new File("preprocessed")
+      if (!preprocessedDir.exists) {
+        preprocessedDir.mkdir
+      } else {
+        preprocessedDir.listFiles().foreach(_.delete)
+      }
+      
+      val postprocessedDir = new File("postprocessed")
+      if (!postprocessedDir.exists) {
+        postprocessedDir.mkdir
+      } else {
+        postprocessedDir.listFiles().foreach(_.delete)
+      }
+      
       cCodeDir.listFiles.foreach{x => println(x.getName)}
       val codeFiles = cCodeDir.listFiles()
                             .filter{file => (file.getName.contains(".c") || file.getName.contains(".h")) && !file.getName.contains("version") }
-                            //.groupBy{file => file.getName.split('.')(0)}
-
-      for (file <- codeFiles) {
-        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
-        val newCopy = new File(file.getName)
-        Files.copy( file.toPath, beforePreFile.toPath );
-      }
+      
+      // create script
       
       val runGcc = new File("rungcc.bat")
       val gccwriter = new java.io.PrintWriter(runGcc)
       for (file <- codeFiles) {
         val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
-        gccwriter.println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed_" + file.getName)
+        gccwriter.println("cmd /c gcc -E -P " + beforePreFile.getAbsolutePath + " > preprocessed\\" + file.getName)
       }
       gccwriter.println("exit")
       gccwriter.close
-      gccwriter.flush()      
+      gccwriter.flush() 
+      
+      val runGccNoIncludes = new File("rungcc2.bat")
+      val writerNoIncludes = new java.io.PrintWriter(runGccNoIncludes)
+      for (file <- codeFiles) {
+        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
+        writerNoIncludes.println("cmd /c gcc -DACD_IS_API_ONLY -DFIXED_WING_TAWS -E -P " + beforePreFile.getAbsolutePath + " > noincludes\\" + file.getName)
+      }
+      writerNoIncludes.println("exit")
+      writerNoIncludes.close
+      writerNoIncludes.flush()  
             
       for (file <- codeFiles) {
         val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
@@ -75,40 +109,62 @@ object main {
       }
  
       val rt = Runtime.getRuntime();
-      rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
+      rt.exec("cmd /c start /wait " + runGccNoIncludes.getAbsolutePath).waitFor();
       
-      val preprocessed = codeFiles.map{file => new File("preprocessed_" + file.getName)}      
-      val linecountsNoInclues = preprocessed map{file => file.getName -> Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().size} toMap
+      val noIncludes = noIncludesDir.listFiles
+      val linecountsNoIncludes = noIncludes map{file => file.getName -> Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().size} toMap
       
-      preprocessed.foreach{_.delete()}
+      beforePreprocessingDir.listFiles.foreach(_.delete)
+      noIncludes.foreach{_.delete()}
       
-      rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
+      // now write the whole file (including #includes)
       
-      val includeFiles = new ListBuffer[String]()
       for (file <- codeFiles) {
         val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
-        val pw = new java.io.PrintWriter(beforePreFile)
+        val newCopy = new File(file.getName)
+        Files.copy( file.toPath, beforePreFile.toPath );
+      }
+      
+      rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
+      
+      beforePreprocessingDir.listFiles.foreach(_.delete)
+      
+      val fullPreprocess = preprocessedDir.listFiles
+      
+      //extract only code that was in the original file
+      val includeFiles = new ListBuffer[String]()
+      for (file <- fullPreprocess) {
+        val extractedData = new File(extractedDir.getAbsolutePath + "\\" + file.getName)
+        val pw = new java.io.PrintWriter(extractedData)
         try {
-          val rawLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()
-          val startReading = rawLines.size - linecountsNoInclues("preprocessed_" + file.getName)
-          val lines = rawLines.drop(startReading)
-          
-          for (line <- lines) {
-            pw.println(line)
-          } 
+          val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
+          expandedLines.reverse.take(linecountsNoIncludes(file.getName)).reverse.foreach{line => pw.println(line)}
         } finally {
             pw.close
         }
       }
   
       runGcc.delete
+      
+      // combine .c and .h files
+      
+      for ((name, files) <- extractedDir.listFiles.groupBy{file => file.getName.split('.')(0)}) { 
+        val postFile = new File(postprocessedDir.getAbsolutePath + "\\" + name)
+        val pw = new java.io.PrintWriter(postFile)
+        try {
+          for (file <- files) {
+            val lines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()
+            for (line <- lines) {
+              pw.println(line)
+            }
+          }
+        } finally {
+            pw.close
+        }
         
-      for (file <- codeFiles) { 
-        val newFile = new File("preprocessed_" + file.getName)
-  
         val parser = new CParser(
             new CommonTokenStream(
-            new CLexer(new ANTLRFileStream("preprocessed_" + file.getName))));
+            new CLexer(new ANTLRFileStream("postprocessed\\" + name))));
   
         parser.setBuildParseTree(true);
   
@@ -123,19 +179,16 @@ object main {
         
         if (visitor.results.size > 0) {
           
-          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + file.getName + ".scala"))
+          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + name + ".scala"))
           
           resultWriter.println("package convertedCode\n\n")
           includeFiles.foreach{x => resultWriter.println("import " + x + "._")}
-          resultWriter.println("object " + file.getName + " {\n")
+          resultWriter.println("object " + name + " {\n")
           visitor.results.foreach{line => resultWriter.println(line)}
           resultWriter.println("}\n")
           
           resultWriter.flush
           resultWriter.close
-          
-          val preprocessedFile = new File("preprocessed_" + file.getName)
-          //preprocessedFile.delete()
         }
       }
     }   

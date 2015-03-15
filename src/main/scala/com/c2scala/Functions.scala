@@ -73,7 +73,8 @@ class FunctionConverter(cTypes: HashMap[String, String], outputFunctionContents:
       isWithinParameters = false
      
     if (ctx.declarator() != null)
-      parameters += Parameter(ctx.declarator().getText, translateTypeSpec(latestParamTypeSpec))
+      // ignore pointer types
+      parameters += Parameter(ctx.declarator.directDeclarator.getText, translateTypeSpec(latestParamTypeSpec))
       
     Nil
   }
