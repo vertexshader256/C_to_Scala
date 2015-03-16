@@ -30,6 +30,7 @@ class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor
     case "long" => "Long"
     case "short" => "Short"
     case "int" => "Int"
+    case "void" => "Unit"
     case _ => typeSpec.getText
   }
   
