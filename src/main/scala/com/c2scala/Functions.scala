@@ -2,6 +2,8 @@ package com.c2scala
 
 import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
+import scala.util.Try
+
 case class Parameter(name: String, paramType: String) {
   override def toString = name + ": " + paramType
 }
@@ -70,12 +72,11 @@ class FunctionConverter(cTypes: HashMap[String, String], outputFunctionContents:
   override def visitParameterDeclaration(ctx: CParser.ParameterDeclarationContext) = {
     isWithinParameters = true
     super.visitParameterDeclaration(ctx)
-      isWithinParameters = false
+    isWithinParameters = false
      
-    if (ctx.declarator() != null)
-      // ignore pointer types
-      parameters += Parameter(ctx.declarator.directDeclarator.getText, translateTypeSpec(latestParamTypeSpec))
-      
+    val hasPointer = Try(ctx.declarator.pointer != null).getOrElse(false)
+    parameters += Parameter(ctx.declarator.directDeclarator.getText, translateTypeSpec(latestParamTypeSpec, hasPointer))
+
     Nil
   }
    

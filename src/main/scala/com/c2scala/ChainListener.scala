@@ -23,14 +23,15 @@ class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor
     }
   }
   
-  protected def translateTypeSpec(typeSpec: CParser.TypeSpecifierContext) = typeSpec.getText match {
-    case "char" => "Char"
-    case "float" => "Float"
-    case "double" => "Double"
-    case "long" => "Long"
-    case "short" => "Short"
-    case "int" => "Int"
-    case "void" => "Unit"
+  protected def translateTypeSpec(typeSpec: CParser.TypeSpecifierContext, isPointer: Boolean = false) = (typeSpec.getText, isPointer) match {
+    case ("char", _) => "Char"
+    case ("float", _) => "Float"
+    case ("double", _) => "Double"
+    case ("long", _) => "Long"
+    case ("short", _) => "Short"
+    case ("int", _) => "Int"
+    case ("void", false) => "Unit"
+    case ("void", true) => "Object"
     case _ => typeSpec.getText
   }
   
