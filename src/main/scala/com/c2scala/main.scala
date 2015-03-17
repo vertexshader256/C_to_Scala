@@ -10,7 +10,6 @@ import org.antlr.runtime.tree.CommonTreeAdaptor;
 import org.antlr.runtime.tree.TreeAdaptor;
 import org.antlr.runtime.Token;
 import scala.collection.mutable.ListBuffer
-import java.util._
 import java.io._
 import scala.io.Source
 import scala.collection.mutable.HashMap
@@ -93,16 +92,26 @@ object main {
       writerNoIncludes.println("exit")
       writerNoIncludes.close
       writerNoIncludes.flush()  
-            
+
+      val includeFileMap = scala.collection.mutable.Map[String, List[String]]()
+      
       for (file <- codeFiles) {
         val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
         val pw = new java.io.PrintWriter(beforePreFile)
         try {
-            for (line <- Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()) {
-              if (!line.contains("#include")) {
-                pw.println(line)
-              }   
-            } 
+          val includeFiles = ListBuffer[String]()
+          for (line <- Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()) {
+            if (!line.contains("#include")) {
+              pw.println(line)
+            } else if (line.split("\"").size == 2){
+              includeFiles += line.split("\"")(1).reverse.drop(2).reverse
+            }
+          } 
+          
+          if (file.getName.endsWith(".c")) {
+            includeFileMap(file.getName.split('.')(0)) = includeFiles.toList
+          }
+            
         } finally {
             pw.close
         }
@@ -118,27 +127,49 @@ object main {
       noIncludes.foreach{_.delete()}
       
       // now write the whole file (including #includes)
-      
+            
       for (file <- codeFiles) {
         val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
-        val newCopy = new File(file.getName)
-        Files.copy( file.toPath, beforePreFile.toPath );
+        val pw = new java.io.PrintWriter(beforePreFile)
+        try {
+          for (line <- Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()) {
+            if (line.contains("#include")) {
+              pw.println("==== BEGIN " + line.split("#include")(1) + " ====")
+              pw.println(line)
+              pw.println("==== END " + line.split("#include")(1) + " ====")
+            } else {
+              pw.println(line)
+            }
+          } 
+        } finally {
+            pw.close
+        }
       }
       
       rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
       
-      beforePreprocessingDir.listFiles.foreach(_.delete)
+      //beforePreprocessingDir.listFiles.foreach(_.delete)
       
       val fullPreprocess = preprocessedDir.listFiles
       
       //extract only code that was in the original file
-      val includeFiles = new ListBuffer[String]()
+      
       for (file <- fullPreprocess) {
         val extractedData = new File(extractedDir.getAbsolutePath + "\\" + file.getName)
         val pw = new java.io.PrintWriter(extractedData)
+        
         try {
           val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
-          expandedLines.reverse.take(linecountsNoIncludes(file.getName)).reverse.foreach{line => pw.println(line)}
+          var level = 0
+          for (line <- expandedLines) {
+            if (line.contains("==== BEGIN ")) {
+              level += 1
+            } else if (line.contains("==== END ")) {
+              level -= 1
+            } else if (level == 0) {
+              pw.println(line)
+            }
+          }
         } finally {
             pw.close
         }
@@ -151,8 +182,9 @@ object main {
       for ((name, files) <- extractedDir.listFiles.groupBy{file => file.getName.split('.')(0)}) { 
         val postFile = new File(postprocessedDir.getAbsolutePath + "\\" + name)
         val pw = new java.io.PrintWriter(postFile)
+        val sorted = files.sortBy { file => file.getName }.reverse
         try {
-          for (file <- files) {
+          for (file <- sorted) {
             val lines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()
             for (line <- lines) {
               pw.println(line)
@@ -182,7 +214,7 @@ object main {
           val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + name + ".scala"))
           
           resultWriter.println("package convertedCode\n\n")
-          includeFiles.foreach{x => resultWriter.println("import " + x + "._")}
+          includeFileMap.withDefaultValue(Nil)(name).foreach{x => resultWriter.println("import " + x + "._")}
           resultWriter.println("object " + name + " {\n")
           visitor.results.foreach{line => resultWriter.println(line)}
           resultWriter.println("}\n")
