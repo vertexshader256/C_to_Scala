@@ -21,7 +21,7 @@ class Statement extends FlatSpec with ShouldMatchers {
   }
   
   "A static chained custom typed variable" should "convert correctly" in {
-    convertedToScala("typedef double Blah; typedef Blah Test; static Test blah;").head should equal("private var blah: Test = 0.0")
+    convertedToScala("typedef double Blah; typedef Blah Test; static Test blah;") should equal(Array("type Blah = Double", "type Test = Blah", "private var blah: Test = 0.0"))
   }
   
   "A simple statement with custom type" should "convert correctly" in {

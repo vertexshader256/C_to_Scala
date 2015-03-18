@@ -51,7 +51,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
       if (directDeclarators.size > 1) {
         val typeName = if (!typedefNames.isEmpty) typedefNames(0) else translateTypeSpec(latestTypeSpec)
         val decl = "(" + directDeclarators.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typeName)(typeName))
+        val baseTypeDefault = getDefault(cTypes, typeName)
         val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
           if (index < explicitInitValues.size) {
             explicitInitValues(index)
@@ -61,7 +61,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
         }.reduce(_ + ", " + _) + ")"
         results += qualifier + " " + decl + " = " + defaults + "\n"
       } else if (directDeclarators.size == 1 && latestTypeSpec != null) {
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(translateTypeSpec(latestTypeSpec))(translateTypeSpec(latestTypeSpec)))
+        val baseTypeDefault = getDefault(cTypes, translateTypeSpec(latestTypeSpec))
         val default = if (!explicitInitValues.isEmpty) {
             explicitInitValues(0)
           } else {
@@ -69,10 +69,10 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
           } 
         results += qualifier + " " + directDeclarators(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + default + "\n"
       } else if (typedefNames.size == 1 && latestTypeSpec != null) {
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(latestTypeSpec.getText)(latestTypeSpec.getText))
+        val baseTypeDefault = getDefault(cTypes, latestTypeSpec.getText)
         results += qualifier + " " + typedefNames(0) + ": " + translateTypeSpec(latestTypeSpec) + " = " + baseTypeDefault + "\n"
       } else if (typedefNames.size == 2) {
-        val baseTypeDefault = getTypeDefault(cTypes.withDefaultValue(typedefNames(1))(typedefNames(1)))
+        val baseTypeDefault = getDefault(cTypes, typedefNames(0))
         results += qualifier + " " + typedefNames(1) + ": " + typedefNames(0) + " = " + baseTypeDefault + "\n"
       } else {
         parseSimpleDecl()
