@@ -8,6 +8,10 @@ class Function extends FlatSpec with ShouldMatchers {
     convertedToScala("int blah() {}").head should equal("def blah(): Int = {}")
   }
   
+  "A simple function with void parameters" should "convert correctly" in {
+    convertedToScala("float blah(void) {}").head should equal("def blah(): Float = {}")
+  }
+  
   "A simple function with a primitive parameter" should "convert correctly" in {
     convertedToScala("float blah(int x) {}").head should equal("def blah(x: Int): Float = {}")
   }

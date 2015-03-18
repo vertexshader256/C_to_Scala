@@ -30,6 +30,7 @@ class EnumConverter(cTypes: HashMap[String, String]) extends ChainListener[Enume
     val index = ctx.getParent.getParent.getRuleIndex
     // assume the typedef name is the last child
     val typeDefName = ctx.getParent.getParent.getParent.children.asScala.last.getText
+    cTypes += typeDefName -> "Int"
     Enumeration(typeDefName, enumerations)
   }
   

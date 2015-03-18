@@ -54,6 +54,36 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
                                               "}"))
   }
   
+  "A typedef struct with an array of custom type" should "convert correctly" in {
+    val test = """typedef Int Blah;
+                  typedef struct {
+                    Blah lat[2048];
+                    Blah lon;
+                  } LL;"""
+    
+    convertedToScala(test) should equal(Array("type Blah = Int",
+                                              "class LL {",
+                                              "var lat: Array[Blah] = Array.fill(2048)(0)",
+                                              "var lon: Blah = 0",
+                                              "}"))
+  }
+  
+  "A typedef struct with an array of chained custom type" should "convert correctly" in {
+    val test = """typedef double Blah;
+                  typedef Blah Test;
+                  typedef struct {
+                    Test lat[2048];
+                    Test lon;
+                  } LL;"""
+    
+    convertedToScala(test) should equal(Array("type Blah = Double",
+                                              "type Test = Blah",
+                                              "class LL {",
+                                              "var lat: Array[Test] = Array.fill(2048)(0.0)",
+                                              "var lon: Test = 0.0",
+                                              "}"))
+  }
+  
   "A typedef struct with an array size surrounded in parenthesis" should "convert correctly" in {
     val test = """typedef struct {
                     LATLON lat[((2048))] ;

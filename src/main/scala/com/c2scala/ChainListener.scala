@@ -15,6 +15,16 @@ class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor
   
   val results = ListBuffer[String]()
   
+  protected def getDefault(cTypes: HashMap[String, String], typeName: String): String = {
+    if (cTypes.contains(typeName)) {
+          var result = cTypes(typeName)
+          while (cTypes.contains(result)) {
+            result = cTypes(result)
+          }
+          getTypeDefault(result)
+        } else getTypeDefault(typeName)
+  }
+  
   protected def convertTypeName(varName: String, typeName: String) = {
     if (varName == "type") {
       typeName.toLowerCase()
@@ -36,7 +46,7 @@ class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor
   }
   
   protected def getTypeDefault(typeSpecifier: String) = typeSpecifier match {
-    case "char" | "long" | "short" | "int" | "Char" | "Long" | "Short" | "Int"=> "0"
+    case "char" | "long" | "short" | "int" | "Char" | "Long" | "Short" | "Int" => "0"
     case "float" | "double" | "Float" | "Double"=> "0.0"
     case _ => "null"
   }

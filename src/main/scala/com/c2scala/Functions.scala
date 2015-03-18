@@ -41,6 +41,17 @@ class FunctionConverter(cTypes: HashMap[String, String], outputFunctionContents:
         result += contentStrings.reduce(_ + "; " + _) // separate with semicolon for now
       else if (contentStrings.size == 1)
         result += contents(0).trim
+    } else if (returnType != "" && returnType != "Unit") {
+      if (cTypes.contains(returnType)) {
+        var baseType = cTypes(returnType)
+        var good = baseType
+        while (cTypes.contains(baseType)) {
+          baseType = cTypes(baseType)
+        }
+        result += getTypeDefault(baseType)
+      } else {
+        result += getTypeDefault(returnType)
+      }
     }
     result += "}"
     results += result
@@ -75,7 +86,9 @@ class FunctionConverter(cTypes: HashMap[String, String], outputFunctionContents:
     isWithinParameters = false
      
     val hasPointer = Try(ctx.declarator.pointer != null).getOrElse(false)
-    parameters += Parameter(ctx.declarator.directDeclarator.getText, translateTypeSpec(latestParamTypeSpec, hasPointer))
+    if(ctx.declarator != null) { // is not 'void'
+      parameters += Parameter(ctx.declarator.directDeclarator.getText, translateTypeSpec(latestParamTypeSpec, hasPointer))
+    }
 
     Nil
   }

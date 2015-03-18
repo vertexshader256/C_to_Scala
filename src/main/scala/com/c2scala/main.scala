@@ -126,6 +126,47 @@ object main {
       beforePreprocessingDir.listFiles.foreach(_.delete)
       noIncludes.foreach{_.delete()}
       
+      
+      for (file <- codeFiles) {
+        val beforePreFile = new File(beforePreprocessingDir.getAbsolutePath + "\\" + file.getName)
+        val pw = new java.io.PrintWriter(beforePreFile)
+        try {
+          for (line <- Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()) {
+              pw.println(line)
+          } 
+        } finally {
+            pw.close
+        }
+        
+      }
+      
+      rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
+      
+      beforePreprocessingDir.listFiles.foreach(_.delete)
+      
+      val cTypes = HashMap[String, String]()
+      
+      for (file <- preprocessedDir.listFiles) {
+
+
+            val parser = new CParser(
+            new CommonTokenStream(
+            new CLexer(new ANTLRFileStream(file.getAbsolutePath))));
+  
+            parser.setBuildParseTree(true);
+ 
+            
+            // This line prints the error
+            val ctx = parser.compilationUnit();
+            val visitor = new DeclarationConverter(cTypes, false);
+            visitor.visit(ctx)
+      }
+      
+      println("WHOA: " + cTypes.size)
+      cTypes.foreach(println)
+      
+      preprocessedDir.listFiles.foreach(_.delete)
+      
       // now write the whole file (including #includes)
             
       for (file <- codeFiles) {
@@ -158,24 +199,6 @@ object main {
       //extract only code that was in the original file
       
       for (file <- fullPreprocess) {
-        
-
-        
-//         val parser = new CParser(
-//            new CommonTokenStream(
-//            new CLexer(new ANTLRFileStream(file.getAbsolutePath))));
-//  
-//        parser.setBuildParseTree(true);
-//  
-//         val cTypes = HashMap[String, String]()
-//        
-//        // This line prints the error
-//        val ctx = parser.compilationUnit();
-//        val visitor = new DeclarationConverter(cTypes, false);
-//        visitor.visit(ctx)
-//        val blah =  visitor.typedefNames.toList
-//        println("WHOA")
-        
 
           if (file.getName.contains(".c")) {
             val extractedData = new File(extractedDir.getAbsolutePath + "\\" + file.getName)
@@ -183,6 +206,7 @@ object main {
             val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
             var level = 0
             var isWithinHeaderInclude = false
+          
             for (line <- expandedLines) {
               if (line.contains("==== BEGIN ")) {
                 level += 1
@@ -238,7 +262,7 @@ object main {
   
         parser.setBuildParseTree(true);
   
-         val cTypes = HashMap[String, String]()
+        //val cTypes = HashMap[String, String]()
         
         // This line prints the error
         val ctx = parser.compilationUnit();
