@@ -144,7 +144,10 @@ object main {
         } finally {
             pw.close
         }
+        
       }
+      
+     
       
       rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
       
@@ -155,41 +158,76 @@ object main {
       //extract only code that was in the original file
       
       for (file <- fullPreprocess) {
-        val extractedData = new File(extractedDir.getAbsolutePath + "\\" + file.getName)
-        val pw = new java.io.PrintWriter(extractedData)
         
-        try {
-          val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
-          var level = 0
-          for (line <- expandedLines) {
-            if (line.contains("==== BEGIN ")) {
-              level += 1
-            } else if (line.contains("==== END ")) {
-              level -= 1
-            } else if (level == 0) {
-              pw.println(line)
+
+        
+//         val parser = new CParser(
+//            new CommonTokenStream(
+//            new CLexer(new ANTLRFileStream(file.getAbsolutePath))));
+//  
+//        parser.setBuildParseTree(true);
+//  
+//         val cTypes = HashMap[String, String]()
+//        
+//        // This line prints the error
+//        val ctx = parser.compilationUnit();
+//        val visitor = new DeclarationConverter(cTypes, false);
+//        visitor.visit(ctx)
+//        val blah =  visitor.typedefNames.toList
+//        println("WHOA")
+        
+
+          if (file.getName.contains(".c")) {
+            val extractedData = new File(extractedDir.getAbsolutePath + "\\" + file.getName)
+            val pw = new java.io.PrintWriter(extractedData)
+            val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
+            var level = 0
+            var isWithinHeaderInclude = false
+            for (line <- expandedLines) {
+              if (line.contains("==== BEGIN ")) {
+                level += 1
+                if (line.contains(file.getName.reverse.drop(2).reverse + ".h")) {
+                  isWithinHeaderInclude = true
+                }
+              } else if (line.contains("==== END ")) {
+                level -= 1
+                if (line.contains(file.getName.reverse.drop(2).reverse + ".h")) {
+                  isWithinHeaderInclude = false
+                }
+              } else if (level == 0 || isWithinHeaderInclude) {
+                pw.println(line)
+              }
             }
+            pw.close()
+          } else if (!fullPreprocess.exists { cFile => cFile.getName.contains(".c") && cFile.getName == (file.getName.reverse.drop(2).reverse + ".c")}) {
+            val extractedData = new File(extractedDir.getAbsolutePath + "\\" + file.getName)
+            val pw = new java.io.PrintWriter(extractedData)
+            val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
+            var level = 0
+            for (line <- expandedLines) {
+              if (line.contains("==== BEGIN ")) {
+                level += 1
+              } else if (line.contains("==== END ")) {
+                level -= 1
+              } else if (level == 0) {
+                pw.println(line)
+              }
+            }
+            pw.close()
           }
-        } finally {
-            pw.close
-        }
       }
   
       runGcc.delete
       
-      // combine .c and .h files
-      
-      for ((name, files) <- extractedDir.listFiles.groupBy{file => file.getName.split('.')(0)}) { 
+      for (file <- extractedDir.listFiles) { 
+        val name = file.getName.reverse.drop(2).reverse
         val postFile = new File(postprocessedDir.getAbsolutePath + "\\" + name)
         val pw = new java.io.PrintWriter(postFile)
-        val sorted = files.sortBy { file => file.getName }.reverse
         try {
-          for (file <- sorted) {
             val lines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()
             for (line <- lines) {
               pw.println(line)
             }
-          }
         } finally {
             pw.close
         }
