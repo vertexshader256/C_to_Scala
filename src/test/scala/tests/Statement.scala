@@ -32,6 +32,10 @@ class Statement extends FlatSpec with ShouldMatchers {
     convertedToScala("LATLON x, y;").head should equal("var (x: LATLON, y: LATLON) = (null, null)")
   }
    
+  "A simple statement setting a floating point number" should "convert correctly" in {
+    convertedToScala("float blah = 5.0;").head should equal("var blah: Float = 5.0f")
+  }
+  
   "A simple statement with an array" should "convert correctly" in {
     convertedToScala("X blah[Y];").head should equal("var blah: Array[X] = Array.fill(Y)(null)")
   }
