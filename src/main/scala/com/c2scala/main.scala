@@ -188,7 +188,31 @@ object main {
         
       }
       
-     
+      val groupings = Map("ac_data" -> Seq("ac_data.c", "ac_data.h", "pre_ac_dat.h"),
+                          "ang_util" -> Seq("ang_util.c", "ang_util.h"),
+                          "avg_util" -> Seq("avg_util.c", "avg_util.h"),
+                          "latlon_util" -> Seq("latlon_util.c", "latlon_util.h"),
+                          "ta_alert" -> Seq("ta_alert.c", "ta_alert.h"),
+                          "ta_gpws" -> Seq("ta_gpws.c"),
+                          "ta_line" -> Seq("ta_line.c", "ta_line.h"),
+                          "ta_lowalt" -> Seq("ta_lowalt.c"),
+                          "ta_main" -> Seq("ta_main.c", "ta_main.h"),
+                          "ta_obstacle" -> Seq("ta_obstacle.c"),
+                          "ta_parameters" -> Seq("ta_parameters.c", "ta_parameters.h"),
+                          "ta_pda" -> Seq("ta_pda.c"),
+                          "ta_pof" -> Seq("ta_pof.c"),
+                          "ta_pred" -> Seq("ta_pred.c"),
+                          "ta_util" -> Seq("ta_util.c", "ta_util.h"),
+                          "ta_vap" -> Seq("ta_vap.c"),
+                          "taws_api" -> Seq("taws_api.c", "taws_api.h"),
+                          "taws_callouts" -> Seq("taws_callouts.c"),
+                          "terr_util" -> Seq("terr_util.c", "terr_util.h"),
+                          "trig" -> Seq("trig.c", "trig.h"),
+                          "api_common" -> Seq("api_common.h"),
+                          "api_obst_defs" -> Seq("api_obst_defs.h"),
+                          "api_terr_defs" -> Seq("api_terr_defs.h"),
+                          "api_a424_defs" -> Seq("api_a424_defs.h")
+                          )
       
       rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
       
