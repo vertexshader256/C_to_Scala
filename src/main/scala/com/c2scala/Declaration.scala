@@ -13,12 +13,12 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   var typeQualifier = ""
   var latestStorageSpecifier = ""
   var typeName = ""
+  var varName = ""
   var islatestStructDecArray = false
   var latestStructDecName = ""
   var latestArraySize = ""
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   var specifierQualifierLevel = 0
-  var latestDirectDeclarator = ""
   
   def typedefLookahead(ctx: CParser.DeclarationContext): Boolean = {
     val checkTypedef = Try(ctx.declarationSpecifiers().declarationSpecifier().get(0).getText == "typedef")
@@ -52,27 +52,21 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
         val decl = "(" + directDeclarators.map(_ + ": " + dirTypeName).reduce(_ + ", " + _) + ")"
         val baseTypeDefault = getDefault(cTypes, dirTypeName)
         val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
-          if (index < explicitInitValues.size) {
+          postProcessValue(if (index < explicitInitValues.size) {
             explicitInitValues(index)
           } else {
             baseTypeDefault
-          }
+          }, typeName)
         }.reduce(_ + ", " + _) + ")"
         results += qualifier + " " + decl + " = " + defaults + "\n"
-      } else if (directDeclarators.size == 1 && typeName != "") {
+      } else if ((typedefNames.size <= 2 || directDeclarators.size == 1) && typeName != "") {
         val baseTypeDefault = getDefault(cTypes, typeName)
         val default = if (!explicitInitValues.isEmpty) {
             explicitInitValues(0)
           } else {
             baseTypeDefault
           } 
-        results += qualifier + " " + directDeclarators(0) + ": " + typeName + " = " + default + "\n"
-      } else if (typedefNames.size == 1 && typeName != "") {
-        val baseTypeDefault = getDefault(cTypes, typeName)
-        results += qualifier + " " + typedefNames(0) + ": " + typeName + " = " + baseTypeDefault + "\n"
-      } else if (typedefNames.size == 2) {
-        val baseTypeDefault = getDefault(cTypes, typeName)
-        results += qualifier + " " + typedefNames(1) + ": " + typeName + " = " + baseTypeDefault + "\n"
+        results += qualifier + " " + varName + ": " + typeName + " = " + postProcessValue(default, typeName) + "\n"
       } else {
         parseSimpleDecl()
       }
@@ -98,13 +92,12 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   
   def parseSimpleDecl() = {
     if (islatestStructDecArray && latestArraySize != "") {
-        results += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
     } else if (islatestStructDecArray && latestArraySize == "") {
-        results += "var " + latestDirectDeclarator + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"//type " + latestDirectDeclarator + " = Array[" + typedefNames(0) + "]\n"
+        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
     } else if (currentTypeSpec != null) {
-      
-        val baseTypeDefault = getDefault(cTypes, currentTypeSpec.getText)
-        results += "var " + convertTypeName(latestStructDecName, currentTypeSpec.getText) + ": " + translateTypeSpec(currentTypeSpec) + " = " + baseTypeDefault
+        val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
+        results += "var " + convertTypeName(latestStructDecName, typeName) + ": " + typeName + " = " + baseTypeDefault
     }
   }
   
@@ -134,30 +127,32 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-    latestDirectDeclarator = ctx.getText
     islatestStructDecArray = true
-    if (!ctx.getParent.isInstanceOf[CParser.DirectDeclaratorContext])
+    if (!ctx.getParent.isInstanceOf[CParser.DirectDeclaratorContext]) {
       directDeclarators += ctx.getText
+    }
+    varName = ctx.getText
     super.visitDirectDeclarator(ctx)
   }
      
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
-        latestStructDecName = ctx.Identifier().getText
+    latestStructDecName = ctx.Identifier().getText
     if (typedefNames.size == 1) {
       typeName = typedefNames(0)
     }
     typedefNames += ctx.Identifier().getText
+    varName = ctx.Identifier().getText
   }
     
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
-    super.visitTypeSpecifier(ctx)
-    
     if (specifierQualifierLevel <= 1) {
       currentTypeSpec = ctx
     } 
     
     if (ctx.typedefName() == null) {
       typeName = translateTypeSpec(ctx)
+    } else {
+      super.visitTypeSpecifier(ctx)
     }
   }
   

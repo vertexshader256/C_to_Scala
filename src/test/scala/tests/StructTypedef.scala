@@ -24,7 +24,7 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
     
     convertedToScala(test) should equal(Array("class LL {",
                                               "var lat: Int = 0",
-                                              "var lon: Float = 0.0",
+                                              "var lon: Float = 0.0f",
                                               "}"))
   }
   
@@ -38,7 +38,7 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
     convertedToScala(test) should equal(Array("type x = Int",
                                               "class LL {",
                                               "var lat: x = 0",
-                                              "var lon: Float = 0.0",
+                                              "var lon: Float = 0.0f",
                                               "}"))
   }
   

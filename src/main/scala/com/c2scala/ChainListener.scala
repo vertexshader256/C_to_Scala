@@ -25,6 +25,14 @@ class ChainListener[X](val cTypes: HashMap[String, String]) extends CBaseVisitor
         } else getTypeDefault(typeName)
   }
   
+  protected def postProcessValue(value: String, typeName: String): String = {
+    if (typeName == "Float") {
+      value + "f"
+    } else {
+      value
+    }
+  }
+  
   protected def convertTypeName(varName: String, typeName: String) = {
     if (varName == "type") {
       typeName.toLowerCase()
