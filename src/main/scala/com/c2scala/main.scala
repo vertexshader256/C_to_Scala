@@ -188,7 +188,7 @@ object main {
         
       }
       
-      val groupings = Map("ac_data" -> Seq("ac_data.c", "ac_data.h", "pre_ac_dat.h"),
+      val groupings = Map("ac_data" -> Seq("ac_data.c", "ac_data.h"),
                           "ang_util" -> Seq("ang_util.c", "ang_util.h"),
                           "avg_util" -> Seq("avg_util.c", "avg_util.h"),
                           "latlon_util" -> Seq("latlon_util.c", "latlon_util.h"),
@@ -211,7 +211,8 @@ object main {
                           "api_common" -> Seq("api_common.h"),
                           "api_obst_defs" -> Seq("api_obst_defs.h"),
                           "api_terr_defs" -> Seq("api_terr_defs.h"),
-                          "api_a424_defs" -> Seq("api_a424_defs.h")
+                          "api_a424_defs" -> Seq("api_a424_defs.h"),
+                          "ta_defs" -> Seq("ta_defs.h")
                           )
       
       rt.exec("cmd /c start /wait " + runGcc.getAbsolutePath).waitFor();
@@ -222,54 +223,41 @@ object main {
       
       //extract only code that was in the original file
       
-      for (file <- fullPreprocess) {
-
-          if (file.getName.contains(".c")) {
-            val extractedData = new File(extractedDir.getAbsolutePath + "\\" + file.getName)
-            val pw = new java.io.PrintWriter(extractedData)
-            val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
-            var level = 0
-            var isWithinHeaderInclude = false
-          
-            for (line <- expandedLines) {
-              if (line.contains("==== BEGIN ")) {
-                level += 1
-                if (line.contains(file.getName.reverse.drop(2).reverse + ".h")) {
-                  isWithinHeaderInclude = true
+      for ((name, components) <- groupings) {
+         for (file <- fullPreprocess) {
+  
+            if (file.getName == components.head) {
+              val extractedData = new File(extractedDir.getAbsolutePath + "\\" + name)
+              val pw = new java.io.PrintWriter(extractedData)
+              val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
+              var level = 0
+              var isWithinHeaderInclude = false
+            
+              for (line <- expandedLines) {
+                if (line.contains("==== BEGIN ")) {
+                  level += 1
+                  if (components.tail.exists{ x => line.contains(x)}) {
+                    isWithinHeaderInclude = true
+                  }
+                } else if (line.contains("==== END ")) {
+                  level -= 1
+                  if (components.tail.exists{ x => line.contains(x)}) {
+                    isWithinHeaderInclude = false
+                  }
+                } else if (level == 0 || isWithinHeaderInclude) {
+                  pw.println(line)
                 }
-              } else if (line.contains("==== END ")) {
-                level -= 1
-                if (line.contains(file.getName.reverse.drop(2).reverse + ".h")) {
-                  isWithinHeaderInclude = false
-                }
-              } else if (level == 0 || isWithinHeaderInclude) {
-                pw.println(line)
               }
+              pw.close()
             }
-            pw.close()
-          } else if (!fullPreprocess.exists { cFile => cFile.getName.contains(".c") && cFile.getName == (file.getName.reverse.drop(2).reverse + ".c")}) {
-            val extractedData = new File(extractedDir.getAbsolutePath + "\\" + file.getName)
-            val pw = new java.io.PrintWriter(extractedData)
-            val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
-            var level = 0
-            for (line <- expandedLines) {
-              if (line.contains("==== BEGIN ")) {
-                level += 1
-              } else if (line.contains("==== END ")) {
-                level -= 1
-              } else if (level == 0) {
-                pw.println(line)
-              }
-            }
-            pw.close()
-          }
+         }
       }
   
       runGcc.delete
       
       for (file <- extractedDir.listFiles) { 
-        val name = file.getName.reverse.drop(2).reverse
-        val postFile = new File(postprocessedDir.getAbsolutePath + "\\" + name)
+        //val name = file.getName.reverse.drop(2).reverse
+        val postFile = new File(postprocessedDir.getAbsolutePath + "\\" + file.getName)
         val pw = new java.io.PrintWriter(postFile)
         try {
             val lines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines()
@@ -282,7 +270,7 @@ object main {
         
         val parser = new CParser(
             new CommonTokenStream(
-            new CLexer(new ANTLRFileStream("postprocessed\\" + name))));
+            new CLexer(new ANTLRFileStream("postprocessed\\" + file.getName))));
   
         parser.setBuildParseTree(true);
   
@@ -297,11 +285,11 @@ object main {
         
         if (visitor.results.size > 0) {
           
-          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + name + ".scala"))
+          val resultWriter = new PrintWriter(new FileOutputStream("convertedCode\\" + file.getName + ".scala"))
           
           resultWriter.println("package convertedCode\n\n")
-          includeFileMap.withDefaultValue(Nil)(name).foreach{x => resultWriter.println("import " + x + "._")}
-          resultWriter.println("object " + name + " {\n")
+          includeFileMap.withDefaultValue(Nil)(file.getName).foreach{x => resultWriter.println("import " + x + "._")}
+          resultWriter.println("object " + file.getName + " {\n")
           visitor.results.foreach{line => resultWriter.println(line)}
           resultWriter.println("}\n")
           
