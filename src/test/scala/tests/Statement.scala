@@ -44,6 +44,10 @@ class Statement extends FlatSpec with ShouldMatchers {
     convertedToScala("int blah[1][2];").head should equal("var blah: Array[Array[Int]] = Array.fill(1)(Array.fill(2)(null))")
   }
   
+  "A 2d array with an array initializer" should "convert correctly" in {
+    convertedToScala("int blah[2][2] = {{1,2},{3,4}};").head should equal("var blah: Array[Array[Int]] = Array(Array(1,2),Array(3,4))")
+  }
+  
   "Another simple statement with an 2d array" should "convert correctly" in {
     convertedToScala("int blah[2] = {1,2};").head should equal("var blah: Array[Int] = Array(1,2)")
   }
