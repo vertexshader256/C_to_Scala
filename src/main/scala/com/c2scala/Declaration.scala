@@ -37,44 +37,20 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     
     if (!isTypedef) {
       super.visitDeclaration(ctx)
+      // there is no initializer e.g "int blah;"
       if (ctx.initDeclaratorList == null) {
-        output()
+        if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static")) {       
+          val scope = if (latestStorageSpecifier == "static") "private" else ""
+          val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
+          val baseTypeDefault = getDefault(cTypes, typeName)
+          results += qualifier + " " + varName + ": " + typeName + " = " + postProcessValue(baseTypeDefault, typeName) + "\n"
+        } 
       }
     } else {
       val typedefConverter = new TypedefConverter(cTypes)
       typedefConverter.visit(ctx)
       results ++= typedefConverter.results
     }
-    
-//        if (!isTypedef && (latestStorageSpecifier == "" || latestStorageSpecifier == "static")  && !isFunctionPrototype) {
-//      
-//      val scope = if (latestStorageSpecifier == "static") "private" else ""
-//      val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
-//      
-//      if (directDeclarators.size > 1) {
-//        val dirTypeName = if (!typedefNames.isEmpty) typedefNames(0) else typeName
-//        val decl = "(" + directDeclarators.map(_ + ": " + dirTypeName).reduce(_ + ", " + _) + ")"
-//        val baseTypeDefault = getDefault(cTypes, dirTypeName)
-//        val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
-//          postProcessValue(if (index < explicitInitValues.size) {
-//            explicitInitValues(index)
-//          } else {
-//            baseTypeDefault
-//          }, typeName)
-//        }.reduce(_ + ", " + _) + ")"
-//        results += qualifier + " " + decl + " = " + defaults + "\n"
-//      } else if ((typedefNames.size <= 2 || directDeclarators.size == 1) && typeName != "") {
-//        val baseTypeDefault = getDefault(cTypes, typeName)
-//        val default = if (!explicitInitValues.isEmpty) {
-//            explicitInitValues(0)
-//          } else {
-//            baseTypeDefault
-//          } 
-//        results += qualifier + " " + varName + ": " + typeName + " = " + postProcessValue(default, typeName) + "\n"
-//      } else {
-//        parseSimpleDecl()
-//      }
-//    } 
   }
   
   def parseSimpleDecl() = {
@@ -133,42 +109,46 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     super.visitInitDeclaratorList(ctx)
     
     if (ctx.parent.isInstanceOf[CParser.DeclarationContext]) {
-      output()
-    }
-  }
-  
-  def output() = {
-    if (!isTypedef && (latestStorageSpecifier == "" || latestStorageSpecifier == "static")  && !isFunctionPrototype) {
+      if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static")  && !isFunctionPrototype) {
         
         val scope = if (latestStorageSpecifier == "static") "private" else ""
         val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
         
         if (directDeclarators.size > 1) {
-          val dirTypeName = if (!typedefNames.isEmpty) typedefNames(0) else typeName
-          val decl = "(" + directDeclarators.map(_ + ": " + dirTypeName).reduce(_ + ", " + _) + ")"
-          val baseTypeDefault = getDefault(cTypes, dirTypeName)
-          val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
-            postProcessValue(if (index < explicitInitValues.size) {
-              explicitInitValues(index)
-            } else {
-              baseTypeDefault
-            }, typeName)
-          }.reduce(_ + ", " + _) + ")"
-          results += qualifier + " " + decl + " = " + defaults + "\n"
+          outputManyDecs(qualifier)
         } else if ((typedefNames.size <= 2 || directDeclarators.size == 1) && typeName != "") {
-          val baseTypeDefault = getDefault(cTypes, typeName)
+          outputOneDec(qualifier)
+        } else {
+          parseSimpleDecl()
+        }
+      } 
+    }
+  }
+  
+  def outputManyDecs(qualifier: String) = {
+    val dirTypeName = if (!typedefNames.isEmpty) typedefNames(0) else typeName
+        val decl = "(" + directDeclarators.map(_ + ": " + dirTypeName).reduce(_ + ", " + _) + ")"
+        val baseTypeDefault = getDefault(cTypes, dirTypeName)
+        val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
+          postProcessValue(if (index < explicitInitValues.size) {
+            explicitInitValues(index)
+          } else {
+            baseTypeDefault
+          }, typeName)
+        }.reduce(_ + ", " + _) + ")"
+        results += qualifier + " " + decl + " = " + defaults + "\n"
+  }
+  
+  def outputOneDec(qualifier: String) = {
+   val baseTypeDefault = getDefault(cTypes, typeName)
           val default = if (!explicitInitValues.isEmpty) {
               explicitInitValues(0)
             } else {
               baseTypeDefault
             } 
-          results += qualifier + " " + varName + ": " + typeName + " = " + postProcessValue(default, typeName) + "\n"
-        } else {
-          parseSimpleDecl()
-        }
-      } 
+     results += qualifier + " " + varName + ": " + typeName + " = " + postProcessValue(default, typeName) + "\n"
   }
-  
+   
   override def visitInitializer(ctx: CParser.InitializerContext) = {
     explicitInitValues += ctx.getText
   }
