@@ -31,13 +31,12 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     typeQualifier = ""
     typedefNames.clear
     directDeclarators.clear
-    explicitInitValues.clear
       
     isTypedef = typedefLookahead(ctx)
     
     if (!isTypedef) {
       super.visitDeclaration(ctx)
-      // there is no initializer e.g "int blah;"
+      // when there is a single variable with no initializer e.g "int blah;"
       if (ctx.initDeclaratorList == null) {
         if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static")) {       
           val scope = if (latestStorageSpecifier == "static") "private" else ""
@@ -100,7 +99,8 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
   
   override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
-    
+    explicitInitValues.clear
+        
     if (typeName != "") {
       val contents = new DeclaratorConverter(cTypes, typeName)
       contents.visit(ctx)
@@ -114,8 +114,19 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
         val scope = if (latestStorageSpecifier == "static") "private" else ""
         val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
         
+        // e.g "float x,y,z;"
         if (directDeclarators.size > 1) {
-          outputManyDecs(qualifier)
+          val dirTypeName = if (!typedefNames.isEmpty) typedefNames(0) else typeName
+          val decl = "(" + directDeclarators.map(_ + ": " + dirTypeName).reduce(_ + ", " + _) + ")"
+          val baseTypeDefault = getDefault(cTypes, dirTypeName)
+          val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
+            postProcessValue(if (index < explicitInitValues.size) {
+              explicitInitValues(index)
+            } else {
+              baseTypeDefault
+            }, typeName)
+          }.reduce(_ + ", " + _) + ")"
+          results += qualifier + " " + decl + " = " + defaults + "\n"
         } else if ((typedefNames.size <= 2 || directDeclarators.size == 1) && typeName != "") {
           outputOneDec(qualifier)
         } else {
@@ -125,19 +136,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     }
   }
   
-  def outputManyDecs(qualifier: String) = {
-    val dirTypeName = if (!typedefNames.isEmpty) typedefNames(0) else typeName
-        val decl = "(" + directDeclarators.map(_ + ": " + dirTypeName).reduce(_ + ", " + _) + ")"
-        val baseTypeDefault = getDefault(cTypes, dirTypeName)
-        val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
-          postProcessValue(if (index < explicitInitValues.size) {
-            explicitInitValues(index)
-          } else {
-            baseTypeDefault
-          }, typeName)
-        }.reduce(_ + ", " + _) + ")"
-        results += qualifier + " " + decl + " = " + defaults + "\n"
-  }
+ 
   
   def outputOneDec(qualifier: String) = {
    val baseTypeDefault = getDefault(cTypes, typeName)
