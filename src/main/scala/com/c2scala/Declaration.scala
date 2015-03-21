@@ -73,6 +73,17 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     } 
   }
   
+  def parseSimpleDecl() = {
+    if (islatestStructDecArray && latestArraySize != "") {
+        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
+    } else if (islatestStructDecArray && latestArraySize == "") {
+        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
+    } else if (currentTypeSpec != null) {
+        val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
+        results += "var " + convertTypeName(latestStructDecName, typeName) + ": " + typeName + " = " + baseTypeDefault
+    }
+  }
+  
   override def visitSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
     specifierQualifierLevel += 1
     super.visitSpecifierQualifierList(ctx)
@@ -90,16 +101,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     }
   }
   
-  def parseSimpleDecl() = {
-    if (islatestStructDecArray && latestArraySize != "") {
-        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
-    } else if (islatestStructDecArray && latestArraySize == "") {
-        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
-    } else if (currentTypeSpec != null) {
-        val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
-        results += "var " + convertTypeName(latestStructDecName, typeName) + ": " + typeName + " = " + baseTypeDefault
-    }
-  }
+ 
   
   
   override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
@@ -124,6 +126,16 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   
   override def visitInitializer(ctx: CParser.InitializerContext) = {
     explicitInitValues += ctx.getText
+  }
+  
+  override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
+    if (typeName != "") {
+      val contents = new DeclaratorConverter(cTypes, typeName)
+      contents.visit(ctx)
+      results ++= contents.results
+    }
+    
+    super.visitDeclarator(ctx)
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
