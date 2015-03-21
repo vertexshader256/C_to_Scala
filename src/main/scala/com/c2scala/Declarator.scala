@@ -5,6 +5,7 @@ import scala.collection.mutable.ListBuffer
 
 class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String) extends ChainListener[Unit](cTypes) {
   val directDeclarators = ListBuffer[String]()
+  val initializerList = ListBuffer[String]()
   var varName = ""
   
   def showDec(declList: List[String]): String = {
@@ -19,13 +20,26 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String) ext
     }
   }
   
-  override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
-    super.visitDeclarator(ctx)
+  override def visitInitDeclarator(ctx: CParser.InitDeclaratorContext) = {
     
-    if (!directDeclarators.isEmpty) {
+    super.visitInitDeclarator(ctx)
+    
+    if (ctx.initializer() != null && !directDeclarators.isEmpty) {
+      val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + directDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
+      results += "var " + varName + ": " + arrayType + " = Array(" + initializerList.reduce(_ ++ "," ++ _) + ")"
+    } else if (!directDeclarators.isEmpty) {
       val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + directDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
       val value = showDec(directDeclarators.toList)
       results += "var " + varName + ": " + arrayType + " = " + value
+    }
+  }
+  
+  override def visitInitializer(ctx: CParser.InitializerContext) = {
+    if (ctx.assignmentExpression != null)
+      initializerList += ctx.getText
+    else if (ctx.initializerList != null) {
+      initializerList.clear
+      super.visitInitializer(ctx)
     }
   }
   

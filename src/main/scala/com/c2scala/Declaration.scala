@@ -121,21 +121,17 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   
   override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
     directDeclarators.clear
-    super.visitInitDeclaratorList(ctx)
-  }
-  
-  override def visitInitializer(ctx: CParser.InitializerContext) = {
-    explicitInitValues += ctx.getText
-  }
-  
-  override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
+    
     if (typeName != "") {
       val contents = new DeclaratorConverter(cTypes, typeName)
       contents.visit(ctx)
       results ++= contents.results
     }
-    
-    super.visitDeclarator(ctx)
+    super.visitInitDeclaratorList(ctx)
+  }
+  
+  override def visitInitializer(ctx: CParser.InitializerContext) = {
+    explicitInitValues += ctx.getText
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
