@@ -45,14 +45,15 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
   
   def parseSimpleDecl() = {
-    if (islatestStructDecArray && latestArraySize != "") {
-        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
+    results += "var " + convertTypeName(varName, typeName) + ": " +
+    (if (islatestStructDecArray && latestArraySize != "") {
+        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
     } else if (islatestStructDecArray && latestArraySize == "") {
-        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
+        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
     } else if (currentTypeSpec != null) {
         val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
-        results += "var " + convertTypeName(varName, typeName) + ": " + typeName + " = " + baseTypeDefault
-    }
+        typeName + " = " + baseTypeDefault
+    })
   }
   
   override def visitSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
@@ -99,20 +100,18 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
      
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
     if (typedefNames.size == 1) {
-      typeName = typedefNames(0)
+     typeName = typedefNames(0)
+    } else {
+      typedefNames += ctx.Identifier().getText
     }
-    typedefNames += ctx.Identifier().getText
     varName = ctx.Identifier().getText
   }
     
-  override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {
-    if (specifierQualifierLevel <= 1) {
-      currentTypeSpec = ctx
-    } 
-    
-    if (ctx.typedefName() == null) {
+  override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {    
+    if (ctx.typedefName() == null) {      
       typeName = translateTypeSpec(ctx)
     } else {
+      currentTypeSpec = ctx
       super.visitTypeSpecifier(ctx)
     }
   }
