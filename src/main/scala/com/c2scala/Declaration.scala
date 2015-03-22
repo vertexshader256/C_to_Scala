@@ -9,7 +9,6 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   val typedefNames = ListBuffer[String]()
   val directDeclarators = ListBuffer[String]()
   val explicitInitValues = ListBuffer[String]()
-  var isFunctionPrototype = false
   var typeQualifier = ""
   var latestStorageSpecifier = ""
   var typeName = ""
@@ -94,68 +93,33 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     typeQualifier =  ctx.getText
   }
   
-  override def visitParameterTypeList(ctx: CParser.ParameterTypeListContext) = {
-    isFunctionPrototype = true
-  }
-  
   override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
     explicitInitValues.clear
-        
-    //cTypes: HashMap[String, String], typeName: String, latestStorageSpecifier: String, qualifier: String, typedefNames: ListBuffer[String], isFunctionPrototype: Boolean
+
     
     if (typeName != "") {
       val scope = if (latestStorageSpecifier == "static") "private" else ""
         val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
-      val contents = new DeclaratorConverter(cTypes, typeName, "dont", qualifier)
+      val contents = new DeclaratorConverter(cTypes, typeName, "dont", qualifier, islatestStructDecArray, currentTypeSpec, latestStructDecName)
       contents.visit(ctx)
       results ++= contents.results
     }
-    super.visitInitDeclaratorList(ctx)
+    //super.visitInitDeclaratorList(ctx)
     
     if (ctx.parent.isInstanceOf[CParser.DeclarationContext]) {
-      if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static")  && !isFunctionPrototype) {
-        
+
         val scope = if (latestStorageSpecifier == "static") "private" else ""
         val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
         
-        // e.g "float x,y,z;"
-        if (directDeclarators.size > 1) {
-//          val dirTypeName = if (!typedefNames.isEmpty) typedefNames(0) else typeName
-//          val decl = "(" + directDeclarators.map(_ + ": " + dirTypeName).reduce(_ + ", " + _) + ")"
-//          val baseTypeDefault = getDefault(cTypes, dirTypeName)
-//          val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
-//            postProcessValue(if (index < explicitInitValues.size) {
-//              explicitInitValues(index)
-//            } else {
-//              baseTypeDefault
-//            }, typeName)
-//          }.reduce(_ + ", " + _) + ")"
-//          results += qualifier + " " + decl + " = " + defaults + "\n"
-          
-          
-           val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier)
+          val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray, currentTypeSpec, latestStructDecName)
             contents.visit(ctx)
             results ++= contents.results
-        } else if ((typedefNames.size <= 2 || directDeclarators.size == 1) && typeName != "") {
-          outputOneDec(qualifier)
-        } else {
-          parseSimpleDecl()
-        }
-      } 
     }
   }
   
  
   
-  def outputOneDec(qualifier: String) = {
-   val baseTypeDefault = getDefault(cTypes, typeName)
-          val default = if (!explicitInitValues.isEmpty) {
-              explicitInitValues(0)
-            } else {
-              baseTypeDefault
-            } 
-     results += qualifier + " " + varName + ": " + typeName + " = " + postProcessValue(default, typeName) + "\n"
-  }
+  
    
   override def visitInitializer(ctx: CParser.InitializerContext) = {
     explicitInitValues += ctx.getText
