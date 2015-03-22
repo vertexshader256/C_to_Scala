@@ -7,8 +7,7 @@ import scala.util.Try
 class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionContents: Boolean) extends ChainListener[Unit](cTypes) {
 
   val typedefNames = ListBuffer[String]()
-  val directDeclarators = ListBuffer[String]()
-  val explicitInitValues = ListBuffer[String]()
+  //val directDeclarators = ListBuffer[String]()
   var typeQualifier = ""
   var latestStorageSpecifier = ""
   var typeName = ""
@@ -29,7 +28,6 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     latestStorageSpecifier = ""
     typeQualifier = ""
     typedefNames.clear
-    directDeclarators.clear
       
     isTypedef = typedefLookahead(ctx)
     
@@ -94,42 +92,16 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
   
   override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
-    explicitInitValues.clear
+    val scope = if (latestStorageSpecifier == "static") "private" else ""
+    val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
 
-    
-    if (typeName != "") {
-      val scope = if (latestStorageSpecifier == "static") "private" else ""
-        val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
-      val contents = new DeclaratorConverter(cTypes, typeName, "dont", qualifier, islatestStructDecArray, currentTypeSpec, latestStructDecName)
+    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray, currentTypeSpec, latestStructDecName)
       contents.visit(ctx)
       results ++= contents.results
-    }
-    //super.visitInitDeclaratorList(ctx)
-    
-    if (ctx.parent.isInstanceOf[CParser.DeclarationContext]) {
-
-        val scope = if (latestStorageSpecifier == "static") "private" else ""
-        val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
-        
-          val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray, currentTypeSpec, latestStructDecName)
-            contents.visit(ctx)
-            results ++= contents.results
-    }
-  }
-  
- 
-  
-  
-   
-  override def visitInitializer(ctx: CParser.InitializerContext) = {
-    explicitInitValues += ctx.getText
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     islatestStructDecArray = true
-    if (!ctx.getParent.isInstanceOf[CParser.DirectDeclaratorContext]) {
-      directDeclarators += ctx.getText
-    }
     varName = ctx.getText
     super.visitDirectDeclarator(ctx)
   }
