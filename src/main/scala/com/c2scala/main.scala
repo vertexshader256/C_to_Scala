@@ -231,20 +231,25 @@ object main {
               val pw = new java.io.PrintWriter(extractedData)
               val expandedLines = Source.fromFile(file.getAbsolutePath, "ISO-8859-1").getLines().toList
               var level = 0
+              var level2 = 0
               var isWithinHeaderInclude = false
             
               for (line <- expandedLines) {
                 if (line.contains("==== BEGIN ")) {
-                  level += 1
+                  level2 += 1
                   if (components.tail.exists{ x => line.contains(x)}) {
                     isWithinHeaderInclude = true
+                  } else if (isWithinHeaderInclude) {
+                    level += 1
                   }
                 } else if (line.contains("==== END ")) {
-                  level -= 1
+                  level2 -= 1
                   if (components.tail.exists{ x => line.contains(x)}) {
                     isWithinHeaderInclude = false
+                  } else if (isWithinHeaderInclude) {
+                    level -= 1
                   }
-                } else if (level == 0 || isWithinHeaderInclude) {
+                } else if (level2 == 0 || (isWithinHeaderInclude && level == 0)) {
                   pw.println(line)
                 }
               }

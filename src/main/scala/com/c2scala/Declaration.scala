@@ -76,6 +76,17 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
     islatestStructDecArray = false
     super.visitStructDeclaration(ctx)
+    //parseSimpleDecl()
+    
+    (if (!islatestStructDecArray && currentTypeSpec != null) {
+        val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
+        results += "var " + convertTypeName(varName, typeName) + ": " + typeName + " = " + baseTypeDefault
+    })
+  }
+  
+  override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
+    islatestStructDecArray = false
+    super.visitDeclarator(ctx)
     parseSimpleDecl()
   }
   
@@ -110,10 +121,10 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   override def visitTypeSpecifier(ctx: CParser.TypeSpecifierContext) = {    
     if (ctx.typedefName() == null) {      
       typeName = translateTypeSpec(ctx)
-    } else {
-      currentTypeSpec = ctx
+    } else { 
       super.visitTypeSpecifier(ctx)
     }
+    currentTypeSpec = ctx
   }
   
   override def visitFunctionDefinition(ctx: CParser.FunctionDefinitionContext) = {
