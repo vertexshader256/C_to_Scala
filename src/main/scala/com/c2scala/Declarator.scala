@@ -25,12 +25,17 @@ class InitializerConverter(cTypes: HashMap[String, String], typeName: String) ex
     }
   }
 }
+//latestStorageSpecifier: String,
+      //   typedefNames: List[String], isFunctionPrototype: Boolean, directDeclarators: List[String], explicitInitValues: List[String]
 
-
-class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String) extends ChainListener[Unit](cTypes) {
-  val directDeclarators = ListBuffer[String]()
+class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, latestStorageSpecifier: String, qualifier: String) extends ChainListener[Unit](cTypes) {
+  val myDirectDeclarators = ListBuffer[String]()
   var initializer = ""
   var varName = ""
+  val myExplicitInitValues = ListBuffer[String]()
+  var isArray = false
+  var level = -1
+  val directDeclarators = ListBuffer[String]()
   
   def showDec(declList: List[String]): String = {
     if (!declList.isEmpty) {
@@ -44,33 +49,66 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String) ext
     }
   }
   
+  override def visitInitDeclaratorList(ctx: CParser.InitDeclaratorListContext) = {
+    level += 1
+    super.visitInitDeclaratorList(ctx)
+    level -= 1
+  }
+  
   override def visitInitDeclarator(ctx: CParser.InitDeclaratorContext) = {
-    
     super.visitInitDeclarator(ctx)
-    
-    if (ctx.initializer() != null && !directDeclarators.isEmpty) {
-      val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + directDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
-      results += "var " + varName + ": " + arrayType + " = " + initializer
-    } else if (!directDeclarators.isEmpty) {
-      val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + directDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
-      val value = showDec(directDeclarators.toList)
-      results += "var " + varName + ": " + arrayType + " = " + value
+
+    if (level == 0) {
+      if (isArray) {
+        if (ctx.initializer() != null && !myDirectDeclarators.isEmpty) {
+          val arrayType = myDirectDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + myDirectDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
+          results += "var " + varName + ": " + arrayType + " = " + initializer
+        } else if (!myDirectDeclarators.isEmpty) {
+          val arrayType = myDirectDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + myDirectDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
+          val value = showDec(myDirectDeclarators.toList)
+          results += "var " + varName + ": " + arrayType + " = " + value
+        }
+      } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static")) {
+  
+          // e.g "float x,y,z;"
+            if (directDeclarators.size > 1) {
+              val decl = "(" + directDeclarators.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
+              val baseTypeDefault = getDefault(cTypes, typeName)
+              val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
+                postProcessValue(if (index < myExplicitInitValues.size) {
+                  myExplicitInitValues(index)
+                } else {
+                  baseTypeDefault
+                }, typeName)
+              }.reduce(_ + ", " + _) + ")"
+              results += qualifier + " " + decl + " = " + defaults + "\n"
+              println("HERE!")
+            }// else if ((typedefNames.size <= 2 || directDeclarators.size == 1) && typeName != "") {
+             // outputOneDec(qualifier)
+            //} else {
+            //  parseSimpleDecl()
+            //}
+      }
     }
   }
   
   override def visitInitializer(ctx: CParser.InitializerContext) = {
     initializer = new InitializerConverter(cTypes, typeName).visit(ctx)
+    myExplicitInitValues += ctx.getText
   }
   
-  //convertedToScala("int blah[1][2];").head should equal("var blah: Array[Array[Int]] = Array.fill(1)(Array.fill(2)(null))")
-  
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
+    if (!ctx.getParent.isInstanceOf[CParser.DirectDeclaratorContext]) {
+      directDeclarators += ctx.getText
+    }
+    
     super.visitDirectDeclarator(ctx)
     
     if (ctx.assignmentExpression() == null) {
       varName = ctx.getText
     } else if (ctx.assignmentExpression() != null) {
-      directDeclarators += ctx.assignmentExpression().getText
+      myDirectDeclarators += ctx.assignmentExpression().getText
+      isArray = true
     }
     
     
