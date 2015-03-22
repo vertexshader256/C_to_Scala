@@ -12,7 +12,6 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   var typeName = ""
   var varName = ""
   var islatestStructDecArray = false
-  var latestStructDecName = ""
   var latestArraySize = ""
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   var specifierQualifierLevel = 0
@@ -52,7 +51,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
         results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
     } else if (currentTypeSpec != null) {
         val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
-        results += "var " + convertTypeName(latestStructDecName, typeName) + ": " + typeName + " = " + baseTypeDefault
+        results += "var " + convertTypeName(varName, typeName) + ": " + typeName + " = " + baseTypeDefault
     }
   }
   
@@ -74,7 +73,6 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
   
   override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
-    latestStructDecName = ""
     islatestStructDecArray = false
     super.visitStructDeclaration(ctx)
     parseSimpleDecl()
@@ -88,7 +86,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     val scope = if (latestStorageSpecifier == "static") "private" else ""
     val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
 
-    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray, currentTypeSpec, latestStructDecName)
+    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray, currentTypeSpec, varName)
       contents.visit(ctx)
       results ++= contents.results
   }
@@ -100,7 +98,6 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
      
   override def visitTypedefName(ctx: CParser.TypedefNameContext) = {
-    latestStructDecName = ctx.Identifier().getText
     if (typedefNames.size == 1) {
       typeName = typedefNames(0)
     }
