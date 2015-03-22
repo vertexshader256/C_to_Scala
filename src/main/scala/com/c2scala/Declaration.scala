@@ -7,7 +7,6 @@ import scala.util.Try
 class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionContents: Boolean) extends ChainListener[Unit](cTypes) {
 
   val typedefNames = ListBuffer[String]()
-  //val directDeclarators = ListBuffer[String]()
   var typeQualifier = ""
   var latestStorageSpecifier = ""
   var typeName = ""
@@ -17,9 +16,8 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   var latestArraySize = ""
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   var specifierQualifierLevel = 0
-  var isTypedef = false
   
-  def typedefLookahead(ctx: CParser.DeclarationContext): Boolean = {
+  def isTypedef(ctx: CParser.DeclarationContext): Boolean = {
     val checkTypedef = Try(ctx.declarationSpecifiers().declarationSpecifier().get(0).getText == "typedef")
     checkTypedef.getOrElse(false)
   }
@@ -29,9 +27,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     typeQualifier = ""
     typedefNames.clear
       
-    isTypedef = typedefLookahead(ctx)
-    
-    if (!isTypedef) {
+    if (!isTypedef(ctx)) {
       super.visitDeclaration(ctx)
       // when there is a single variable with no initializer e.g "int blah;"
       if (ctx.initDeclaratorList == null) {
@@ -76,9 +72,6 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
       }
     }
   }
-  
- 
-  
   
   override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
     latestStructDecName = ""
