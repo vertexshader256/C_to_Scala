@@ -39,6 +39,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   var level = -1
   val directDeclarators = ListBuffer[String]()
   var latestArraySize = ""
+  var latestDeclaratorValue = ""
   
   def showDec(declList: List[String]): String = {
     if (!declList.isEmpty) {
@@ -73,7 +74,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
         } else if (!myDirectDeclarators.isEmpty) {
           val arrayType = myDirectDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + myDirectDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
           val value = showDec(myDirectDeclarators.toList)
-          results += "var " + varName + ": " + arrayType + " = " + value
+          results += latestDeclaratorValue + " = " + value
         }
       } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static") && !isFunctionProto.getOrElse(false)) {
   
@@ -88,12 +89,58 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
                   baseTypeDefault
                 }, typeName)
               }.reduce(_ + ", " + _) + ")"
-              results += qualifier + " " + decl + " = " + defaults + "\n"
-              println("HERE!")
+              results += latestDeclaratorValue + " = " + defaults + "\n"
             } else if ((directDeclarators.size == 1) && typeName != "") {
-              outputOneDec(qualifier)
+              val baseTypeDefault = getDefault(cTypes, typeName)
+                  val default = if (!myExplicitInitValues.isEmpty) {
+                      myExplicitInitValues(0)
+                    } else {
+                      baseTypeDefault
+                    } 
+             results += latestDeclaratorValue + " = " + postProcessValue(default, typeName) + "\n"
             } else {
-              parseSimpleDecl()
+              if (islatestStructDecArray && latestArraySize != "") {
+                  results += latestDeclaratorValue + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
+              } else if (islatestStructDecArray && latestArraySize == "") {
+                  results += latestDeclaratorValue + " = null"
+              } else if (currentTypeSpec != null) {
+                  val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
+                  results += latestDeclaratorValue + " = " + baseTypeDefault
+              }
+            }
+      }
+    }
+  }
+  
+  override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
+    super.visitDeclarator(ctx)
+
+    if (level == 0) {
+      
+      val isFunctionProto = Try(ctx.directDeclarator.parameterTypeList != null)
+      
+      if (isArray) {
+        if (!myDirectDeclarators.isEmpty) {
+          val arrayType = myDirectDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + myDirectDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
+          latestDeclaratorValue = "var " + varName + ": " + arrayType
+        }
+      } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static") && !isFunctionProto.getOrElse(false)) {
+  
+          // e.g "float x,y,z;"
+            if (directDeclarators.size > 1) {
+              val decl = "(" + directDeclarators.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
+              latestDeclaratorValue = qualifier + " " + decl
+            } else if ((directDeclarators.size == 1) && typeName != "") {
+              latestDeclaratorValue = qualifier + " " + varName + ": " + typeName
+            } else {
+              if (islatestStructDecArray && latestArraySize != "") {
+                  latestDeclaratorValue = "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]"
+              } else if (islatestStructDecArray && latestArraySize == "") {
+                  latestDeclaratorValue = "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]"
+              } else if (currentTypeSpec != null) {
+                  val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
+                  latestDeclaratorValue = "var " + convertTypeName(latestStructDecName, typeName) + ": " + typeName
+              }
             }
       }
     }
