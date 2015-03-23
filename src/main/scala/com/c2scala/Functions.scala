@@ -8,6 +8,12 @@ case class Parameter(name: String, paramType: String) {
   override def toString = name + ": " + paramType
 }
 
+/**********************************************************
+ * functionDefinition
+    :   declarationSpecifiers? declarator declarationList? compoundStatement
+    ;
+ */
+
 class FunctionConverter(cTypes: HashMap[String, String], outputFunctionContents: Boolean) extends ChainListener[List[String]](cTypes) {
   var returnType = ""
   var functionName = ""

@@ -9,6 +9,14 @@ import org.antlr.v4.runtime.Token
 case class Enumeration(name: String, enumerators: Seq[Enumerator])
 case class Enumerator(name: String, expression: String)
 
+/***********************************************************************
+ * enumSpecifier
+    :   'enum' Identifier? '{' enumeratorList '}'
+    |   'enum' Identifier? '{' enumeratorList ',' '}'
+    |   'enum' Identifier
+    ;
+ */
+
 class EnumConverter(cTypes: HashMap[String, String]) extends ChainListener[Enumeration](cTypes) {
   val enumerations = ListBuffer[Enumerator]()
   var lastEnumConstant = "0"

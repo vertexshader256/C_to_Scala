@@ -9,6 +9,20 @@ import org.antlr.v4.runtime.tree.TerminalNode
 
 case class Statement(statement: String)
 
+/*******************************************************************
+ * statement
+    :   labeledStatement
+    |   compoundStatement
+    |   expressionStatement
+    |   selectionStatement
+    |   iterationStatement
+    |   jumpStatement
+    |   ('__asm' | '__asm__') ('volatile' | '__volatile__') '(' (logicalOrExpression (',' logicalOrExpression)*)? (':' (logicalOrExpression (',' logicalOrExpression)*)?)* ')' ';'
+    ;
+    
+    Very complex
+ */
+
 class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[Statement](cTypes) {
   var expression = ""
   var selectionStatement = ""

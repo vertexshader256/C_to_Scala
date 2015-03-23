@@ -4,6 +4,16 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.mutable.HashMap
 import scala.util.Try
 
+/*******************************************************
+ * declaration
+    :   declarationSpecifiers initDeclaratorList? ';'
+    |   staticAssertDeclaration
+    ;
+    
+    staticAssertDeclaration not yet supported
+    
+ *********************************************************/
+
 class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionContents: Boolean) extends ChainListener[Unit](cTypes) {
 
   val typedefNames = ListBuffer[String]()
@@ -12,7 +22,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   var typeName = ""
   var varName = ""
   var islatestStructDecArray = false
-  var latestArraySize = ""
+  var latestPrimaryExpression = ""
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   var specifierQualifierLevel = 0
   
@@ -46,9 +56,9 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   
   def parseSimpleDecl() = {
     results += "var " + convertTypeName(varName, typeName) + ": " +
-    (if (islatestStructDecArray && latestArraySize != "") {
-        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
-    } else if (islatestStructDecArray && latestArraySize == "") {
+    (if (islatestStructDecArray && latestPrimaryExpression != "") {
+        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestPrimaryExpression + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
+    } else if (islatestStructDecArray) {
         "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
     } else if (currentTypeSpec != null) {
         val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
@@ -65,7 +75,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
     super.visitPrimaryExpression(ctx)
     if (ctx.expression() == null) { // is this the bottom of the tree?!
-      latestArraySize = if (ctx.getText.contains("0x")) {
+      latestPrimaryExpression = if (ctx.getText.contains("0x")) {
         Integer.getInteger(ctx.getText.drop(2), 16).toString
       } else {
         ctx.getText
@@ -74,10 +84,8 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
   
   override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
-    islatestStructDecArray = false
     super.visitStructDeclaration(ctx)
-    //parseSimpleDecl()
-    
+
     (if (!islatestStructDecArray && currentTypeSpec != null) {
         val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
         results += "var " + convertTypeName(varName, typeName) + ": " + typeName + " = " + baseTypeDefault
@@ -85,9 +93,14 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   }
   
   override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
-    islatestStructDecArray = false
     super.visitDeclarator(ctx)
     parseSimpleDecl()
+     val scope = if (latestStorageSpecifier == "static") "private" else ""
+    val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
+
+    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray)
+      contents.visit(ctx)
+      results ++= contents.results
   }
   
   override def visitTypeQualifier(ctx: CParser.TypeQualifierContext) = {
@@ -98,7 +111,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     val scope = if (latestStorageSpecifier == "static") "private" else ""
     val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
 
-    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray, currentTypeSpec, varName)
+    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray)
       contents.visit(ctx)
       results ++= contents.results
   }

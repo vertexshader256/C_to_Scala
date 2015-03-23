@@ -7,6 +7,14 @@ import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
 
+/*******************************************************
+ * expression
+    :   assignmentExpression
+    |   expression ',' assignmentExpression
+    ;
+    
+    Some math expression stuff
+ *********************************************************/
 
 class ExpressionConverter(cTypes: HashMap[String, String]) extends ChainListener[String](cTypes) {
   var assignmentExpression = ""

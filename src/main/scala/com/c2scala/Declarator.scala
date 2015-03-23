@@ -4,6 +4,14 @@ import scala.collection.mutable.HashMap
 import scala.collection.mutable.ListBuffer
 import scala.util.Try
 
+
+/******************************************
+ * declarator
+    :   pointer? directDeclarator gccDeclaratorExtension*
+ * 
+ * Takes care of arrays
+ *****************************************/
+
 class InitializerConverter(cTypes: HashMap[String, String], typeName: String) extends ChainListener[String](cTypes) {
   override def visitInitializer(ctx: CParser.InitializerContext) = {
     if (ctx.assignmentExpression != null)
@@ -30,8 +38,10 @@ class InitializerConverter(cTypes: HashMap[String, String], typeName: String) ex
       //   typedefNames: List[String], isFunctionPrototype: Boolean, directDeclarators: List[String], explicitInitValues: List[String]
 
 class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, latestStorageSpecifier: String, qualifier: String,
-    islatestStructDecArray: Boolean, currentTypeSpec: CParser.TypeSpecifierContext, latestStructDecName: String) extends ChainListener[Unit](cTypes) {
+    islatestStructDecArray: Boolean) extends ChainListener[Unit](cTypes) {
   var initializer = ""
+  var latestStructDecName: String = ""
+  var currentTypeSpec: CParser.TypeSpecifierContext = null
   var varNames = ListBuffer[String]()
   val myExplicitInitValues = ListBuffer[String]()
   var isArray = false
