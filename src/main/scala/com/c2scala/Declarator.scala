@@ -62,51 +62,42 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   override def visitInitDeclarator(ctx: CParser.InitDeclaratorContext) = {
     super.visitInitDeclarator(ctx)
     val isFunctionProto = Try(ctx.declarator.directDeclarator.parameterTypeList != null)
+    
     if (level == 0 && !isFunctionProto.getOrElse(false)) {
-      
-      
-      
+
       val init = if (isArray) {
-        if (ctx.initializer() != null && !directDeclarators.isEmpty) {
-          val arrayType = varNames.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + varNames.toList.map{x => "]"}.reduce(_ ++ _)
+        if (ctx.initializer() != null) {
           initializer
         } else if (!directDeclarators.isEmpty) {
-          val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + varNames.toList.map{x => "]"}.reduce(_ ++ _)
-          val value = showDec(directDeclarators.toList)
-          value
+          showDec(directDeclarators.toList)
         }
-      } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static")) {
+      } else {
   
-          // e.g "float x,y,z;"
-            if (varNames.size > 1) {
-              val decl = "(" + varNames.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
-              val baseTypeDefault = getDefault(cTypes, typeName)
-              val defaults: String = "(" + varNames.zipWithIndex.map{ case (decl, index) =>
-                postProcessValue(if (index < myExplicitInitValues.size) {
-                  myExplicitInitValues(index)
-                } else {
-                  baseTypeDefault
-                }, typeName)
-              }.reduce(_ + ", " + _) + ")"
-              defaults + "\n"
-            } else if ((varNames.size == 1) && typeName != "") {
-              val baseTypeDefault = getDefault(cTypes, typeName)
-                  val default = if (!myExplicitInitValues.isEmpty) {
-                      myExplicitInitValues(0)
-                    } else {
-                      baseTypeDefault
-                    } 
-             postProcessValue(default, typeName) + "\n"
+        // e.g "float x,y,z;"
+        if (varNames.size > 1) {
+          "(" + varNames.zipWithIndex.map{ case (decl, index) =>
+            postProcessValue(if (index < myExplicitInitValues.size) {
+              myExplicitInitValues(index)
             } else {
-              if (islatestStructDecArray && latestArraySize != "") {
-                  "Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
-              } else if (islatestStructDecArray && latestArraySize == "") {
-                  "null"
-              } else if (currentTypeSpec != null) {
-                  val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
-                  baseTypeDefault
-              }
-            }
+              getDefault(cTypes, typeName)
+            }, typeName)
+          }.reduce(_ + ", " + _) + ")"
+        } else if ((varNames.size == 1) && typeName != "") {
+          val default = if (!myExplicitInitValues.isEmpty) {
+              myExplicitInitValues(0)
+            } else {
+              getDefault(cTypes, typeName)
+            } 
+         postProcessValue(default, typeName)
+        } else {
+          if (islatestStructDecArray && latestArraySize != "") {
+              "Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
+          } else if (currentTypeSpec != null) {
+              postProcessValue(getDefault(cTypes, typeName), typeName)
+          } else {
+            "null"
+          }
+        }
       }
       
       results += latestDeclaratorValue + " = " + init
@@ -116,12 +107,10 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
     super.visitDeclarator(ctx)
 
-      val isFunctionProto = Try(ctx.directDeclarator.parameterTypeList != null)
-      
       latestDeclaratorValue = if (isArray) {
           val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + directDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
           qualifier + " " + varNames(0) + ": " + arrayType
-      } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static") && !isFunctionProto.getOrElse(false)) {
+      } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static")) {
   
       // e.g "float x,y,z;"
         if (varNames.size > 1) {
