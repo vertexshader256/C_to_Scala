@@ -93,12 +93,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
             }, typeName)
           }.reduce(_ + ", " + _) + ")"
         } else if ((varNames.size == 1) && typeName != "") {
-          val default = if (!myExplicitInitValues.isEmpty) {
-              myExplicitInitValues(0)
-            } else {
-              getDefault(cTypes, typeName)
-            } 
-         postProcessValue(default, typeName)
+          postProcessValue(myExplicitInitValues(0), typeName)
         } else {
           if (currentTypeSpec != null) {
               postProcessValue(getDefault(cTypes, typeName), typeName)
@@ -124,7 +119,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
         if (varNames.size > 1) {
           val decl = "(" + varNames.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
           qualifier + " " + decl
-        } else if ((varNames.size == 1) && typeName != "") {
+        } else if (varNames.size == 1) {
           qualifier + " " + varNames(0) + ": " + typeName
         } else {
           if (currentTypeSpec != null) {
