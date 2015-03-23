@@ -98,7 +98,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
      val scope = if (latestStorageSpecifier == "static") "private" else ""
     val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
 
-    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray)
+    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier)
       contents.visit(ctx)
       results ++= contents.results
   }
@@ -111,7 +111,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     val scope = if (latestStorageSpecifier == "static") "private" else ""
     val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
 
-    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, islatestStructDecArray)
+    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier)
       contents.visit(ctx)
       results ++= contents.results
   }

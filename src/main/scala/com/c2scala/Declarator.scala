@@ -37,11 +37,11 @@ class InitializerConverter(cTypes: HashMap[String, String], typeName: String) ex
 //latestStorageSpecifier: String,
       //   typedefNames: List[String], isFunctionPrototype: Boolean, directDeclarators: List[String], explicitInitValues: List[String]
 
-class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, latestStorageSpecifier: String, qualifier: String,
-    islatestStructDecArray: Boolean) extends ChainListener[Unit](cTypes) {
+class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, latestStorageSpecifier: String, qualifier: String) extends ChainListener[Unit](cTypes) {
   var initializer = ""
   var latestStructDecName: String = ""
   var currentTypeSpec: CParser.TypeSpecifierContext = null
+  //var islatestStructDecArray: Boolean = false
   var varNames = ListBuffer[String]()
   val myExplicitInitValues = ListBuffer[String]()
   var isArray = false
@@ -100,9 +100,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
             } 
          postProcessValue(default, typeName)
         } else {
-          if (islatestStructDecArray && latestArraySize != "") {
-              "Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
-          } else if (currentTypeSpec != null) {
+          if (currentTypeSpec != null) {
               postProcessValue(getDefault(cTypes, typeName), typeName)
           } else {
             "null"
@@ -129,9 +127,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
         } else if ((varNames.size == 1) && typeName != "") {
           qualifier + " " + varNames(0) + ": " + typeName
         } else {
-          if (islatestStructDecArray) {
-              qualifier + " " + varNames(0) + ": Array[" + translateTypeSpec(currentTypeSpec) + "]"
-          } else if (currentTypeSpec != null) {
+          if (currentTypeSpec != null) {
               qualifier + " " + convertTypeName(latestStructDecName, typeName) + ": " + typeName
           } else {
             ""
@@ -154,11 +150,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   }
   
   def parseSimpleDecl() = {
-    if (islatestStructDecArray && latestArraySize != "") {
-        results += "var " + varNames(0) + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
-    } else if (islatestStructDecArray && latestArraySize == "") {
-        results += "var " + varNames(0) + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
-    } else if (currentTypeSpec != null) {
+    if (currentTypeSpec != null) {
         val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
         results += "var " + convertTypeName(latestStructDecName, typeName) + ": " + typeName + " = " + baseTypeDefault
     }
