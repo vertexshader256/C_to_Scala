@@ -31,9 +31,8 @@ class InitializerConverter(cTypes: HashMap[String, String], typeName: String) ex
 
 class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, latestStorageSpecifier: String, qualifier: String,
     islatestStructDecArray: Boolean, currentTypeSpec: CParser.TypeSpecifierContext, latestStructDecName: String) extends ChainListener[Unit](cTypes) {
-  val myDirectDeclarators = ListBuffer[String]()
   var initializer = ""
-  var varName = ""
+  var varNames = ListBuffer[String]()
   val myExplicitInitValues = ListBuffer[String]()
   var isArray = false
   var level = -1
@@ -68,21 +67,21 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
       val isFunctionProto = Try(ctx.declarator.directDeclarator.parameterTypeList != null)
       
       if (isArray) {
-        if (ctx.initializer() != null && !myDirectDeclarators.isEmpty) {
-          val arrayType = myDirectDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + myDirectDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
-          results += "var " + varName + ": " + arrayType + " = " + initializer
-        } else if (!myDirectDeclarators.isEmpty) {
-          val arrayType = myDirectDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + myDirectDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
-          val value = showDec(myDirectDeclarators.toList)
+        if (ctx.initializer() != null && !directDeclarators.isEmpty) {
+          val arrayType = varNames.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + varNames.toList.map{x => "]"}.reduce(_ ++ _)
+          results += latestDeclaratorValue + " = " + initializer
+        } else if (!directDeclarators.isEmpty) {
+          val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + varNames.toList.map{x => "]"}.reduce(_ ++ _)
+          val value = showDec(directDeclarators.toList)
           results += latestDeclaratorValue + " = " + value
         }
       } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static") && !isFunctionProto.getOrElse(false)) {
   
           // e.g "float x,y,z;"
-            if (directDeclarators.size > 1) {
-              val decl = "(" + directDeclarators.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
+            if (varNames.size > 1) {
+              val decl = "(" + varNames.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
               val baseTypeDefault = getDefault(cTypes, typeName)
-              val defaults: String = "(" + directDeclarators.zipWithIndex.map{ case (decl, index) =>
+              val defaults: String = "(" + varNames.zipWithIndex.map{ case (decl, index) =>
                 postProcessValue(if (index < myExplicitInitValues.size) {
                   myExplicitInitValues(index)
                 } else {
@@ -90,7 +89,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
                 }, typeName)
               }.reduce(_ + ", " + _) + ")"
               results += latestDeclaratorValue + " = " + defaults + "\n"
-            } else if ((directDeclarators.size == 1) && typeName != "") {
+            } else if ((varNames.size == 1) && typeName != "") {
               val baseTypeDefault = getDefault(cTypes, typeName)
                   val default = if (!myExplicitInitValues.isEmpty) {
                       myExplicitInitValues(0)
@@ -120,23 +119,23 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
       val isFunctionProto = Try(ctx.directDeclarator.parameterTypeList != null)
       
       if (isArray) {
-        if (!myDirectDeclarators.isEmpty) {
-          val arrayType = myDirectDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + myDirectDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
-          latestDeclaratorValue = "var " + varName + ": " + arrayType
+        if (!directDeclarators.isEmpty) {
+          val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + directDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
+          latestDeclaratorValue = "var " + varNames(0) + ": " + arrayType
         }
       } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static") && !isFunctionProto.getOrElse(false)) {
   
           // e.g "float x,y,z;"
-            if (directDeclarators.size > 1) {
-              val decl = "(" + directDeclarators.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
+            if (varNames.size > 1) {
+              val decl = "(" + varNames.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
               latestDeclaratorValue = qualifier + " " + decl
-            } else if ((directDeclarators.size == 1) && typeName != "") {
-              latestDeclaratorValue = qualifier + " " + varName + ": " + typeName
+            } else if ((varNames.size == 1) && typeName != "") {
+              latestDeclaratorValue = qualifier + " " + varNames(0) + ": " + typeName
             } else {
               if (islatestStructDecArray && latestArraySize != "") {
-                  latestDeclaratorValue = "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]"
+                  latestDeclaratorValue = "var " + varNames(0) + ": Array[" + translateTypeSpec(currentTypeSpec) + "]"
               } else if (islatestStructDecArray && latestArraySize == "") {
-                  latestDeclaratorValue = "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]"
+                  latestDeclaratorValue = "var " + varNames(0) + ": Array[" + translateTypeSpec(currentTypeSpec) + "]"
               } else if (currentTypeSpec != null) {
                   val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
                   latestDeclaratorValue = "var " + convertTypeName(latestStructDecName, typeName) + ": " + typeName
@@ -159,9 +158,9 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   
   def parseSimpleDecl() = {
     if (islatestStructDecArray && latestArraySize != "") {
-        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
+        results += "var " + varNames(0) + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
     } else if (islatestStructDecArray && latestArraySize == "") {
-        results += "var " + varName + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
+        results += "var " + varNames(0) + ": Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
     } else if (currentTypeSpec != null) {
         val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
         results += "var " + convertTypeName(latestStructDecName, typeName) + ": " + typeName + " = " + baseTypeDefault
@@ -175,7 +174,7 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
             } else {
               baseTypeDefault
             } 
-     results += qualifier + " " + varName + ": " + typeName + " = " + postProcessValue(default, typeName) + "\n"
+     results += qualifier + " " + varNames(0) + ": " + typeName + " = " + postProcessValue(default, typeName) + "\n"
   }
   
   override def visitInitializer(ctx: CParser.InitializerContext) = {
@@ -184,19 +183,15 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   }
   
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
-    if (!ctx.getParent.isInstanceOf[CParser.DirectDeclaratorContext]) {
-      directDeclarators += ctx.getText
-    }
-    
     super.visitDirectDeclarator(ctx)
     
-    if (ctx.assignmentExpression() == null) {
-      varName = ctx.getText
-    } else if (ctx.assignmentExpression() != null) {
-      myDirectDeclarators += ctx.assignmentExpression().getText
-      isArray = true
-    }
-    
+      if (ctx.assignmentExpression() == null) {
+          varNames += ctx.getText
+      } else if (ctx.assignmentExpression() != null) {
+        isArray = true
+        directDeclarators += ctx.assignmentExpression().getText
+      }// else
+//        directDeclarators += ctx.getText
     
   }
   
