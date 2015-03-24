@@ -37,11 +37,10 @@ class InitializerConverter(cTypes: HashMap[String, String], typeName: String) ex
 //latestStorageSpecifier: String,
       //   typedefNames: List[String], isFunctionPrototype: Boolean, directDeclarators: List[String], explicitInitValues: List[String]
 
-class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, latestStorageSpecifier: String, qualifier: String) extends ChainListener[Unit](cTypes) {
+class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, latestStorageSpecifier: String, qualifier: String,
+    currentTypeSpec: CParser.TypeSpecifierContext) extends ChainListener[Unit](cTypes) {
   var initializer = ""
   var latestStructDecName: String = ""
-  var currentTypeSpec: CParser.TypeSpecifierContext = null
-  //var islatestStructDecArray: Boolean = false
   var varNames = ListBuffer[String]()
   val myExplicitInitValues = ListBuffer[String]()
   var isArray = false
@@ -67,6 +66,15 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
     level += 1
     super.visitInitDeclaratorList(ctx)
     level -= 1
+  }
+  
+  def parseSimpleDecl2() = {
+    results += "var " + convertTypeName(varNames.head, typeName) + ": " +
+    (if (isArray && latestArraySize != "") {
+        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
+    } else if (isArray) {
+        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
+    })
   }
   
   override def visitInitDeclarator(ctx: CParser.InitDeclaratorContext) = {
@@ -108,7 +116,11 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   }
   
   override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
-    super.visitDeclarator(ctx)
+    
+    val isFunctionProto = Try(ctx.directDeclarator.parameterTypeList != null).getOrElse(false)
+    
+    if (!isFunctionProto) {
+      super.visitDeclarator(ctx)
 
       latestDeclaratorValue = if (isArray) {
           val arrayType = directDeclarators.toList.map{x => "Array["}.reduce(_ ++ _) + typeName + directDeclarators.toList.map{x => "]"}.reduce(_ ++ _)
@@ -131,6 +143,11 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
       } else {
         ""
       }
+    
+      if (!ctx.parent.isInstanceOf[CParser.InitDeclaratorContext]) {
+        parseSimpleDecl2()
+      }
+    }
   }
     
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
@@ -166,16 +183,26 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
     myExplicitInitValues += ctx.getText
   }
   
+  override def visitPointer(ctx: CParser.PointerContext) = {
+    isArray = true
+  }
+  
   override def visitDirectDeclarator(ctx: CParser.DirectDeclaratorContext) = {
     super.visitDirectDeclarator(ctx)
     
-      if (ctx.assignmentExpression() == null) {
-          varNames += ctx.getText
+      if (isArray) {
+        if (ctx.assignmentExpression() != null) {
+          directDeclarators += ctx.assignmentExpression().getText
+        } else {
+          directDeclarators += ctx.getText
+        }
+        varNames += ctx.getText
       } else if (ctx.assignmentExpression() != null) {
         isArray = true
         directDeclarators += ctx.assignmentExpression().getText
-      }// else
-//        directDeclarators += ctx.getText
+      } else {
+          varNames += ctx.getText
+      } 
     
   }
   

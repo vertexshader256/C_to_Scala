@@ -22,7 +22,6 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   var typeName = ""
   var varName = ""
   var islatestStructDecArray = false
-  var latestPrimaryExpression = ""
   var currentTypeSpec: CParser.TypeSpecifierContext = null
   var specifierQualifierLevel = 0
   
@@ -54,35 +53,13 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     }
   }
   
-  def parseSimpleDecl() = {
-    results += "var " + convertTypeName(varName, typeName) + ": " +
-    (if (islatestStructDecArray && latestPrimaryExpression != "") {
-        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestPrimaryExpression + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
-    } else if (islatestStructDecArray) {
-        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
-    } else if (currentTypeSpec != null) {
-        val baseTypeDefault = postProcessValue(getDefault(cTypes, typeName), typeName)
-        typeName + " = " + baseTypeDefault
-    })
-  }
-  
   override def visitSpecifierQualifierList(ctx: CParser.SpecifierQualifierListContext) = {
     specifierQualifierLevel += 1
     super.visitSpecifierQualifierList(ctx)
     specifierQualifierLevel -= 1
   }
   
-  override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
-    super.visitPrimaryExpression(ctx)
-    if (ctx.expression() == null) { // is this the bottom of the tree?!
-      latestPrimaryExpression = if (ctx.getText.contains("0x")) {
-        Integer.getInteger(ctx.getText.drop(2), 16).toString
-      } else {
-        ctx.getText
-      }
-    }
-  }
-  
+   
   override def visitStructDeclaration(ctx: CParser.StructDeclarationContext) = {
     super.visitStructDeclaration(ctx)
 
@@ -94,13 +71,13 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
   
   override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
     super.visitDeclarator(ctx)
-    parseSimpleDecl()
-     val scope = if (latestStorageSpecifier == "static") "private" else ""
+    
+    val scope = if (latestStorageSpecifier == "static") "private" else ""
     val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
 
-    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier)
-      contents.visit(ctx)
-      results ++= contents.results
+    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, currentTypeSpec)
+    contents.visit(ctx)
+    results ++= contents.results
   }
   
   override def visitTypeQualifier(ctx: CParser.TypeQualifierContext) = {
@@ -111,7 +88,7 @@ class DeclarationConverter(cTypes: HashMap[String, String], outputFunctionConten
     val scope = if (latestStorageSpecifier == "static") "private" else ""
     val qualifier = scope + " " + (if (typeQualifier == "const") "val" else "var")
 
-    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier)
+    val contents = new DeclaratorConverter(cTypes, if (!typedefNames.isEmpty) typedefNames(0) else typeName, latestStorageSpecifier, qualifier, currentTypeSpec)
       contents.visit(ctx)
       results ++= contents.results
   }
