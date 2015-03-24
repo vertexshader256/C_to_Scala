@@ -55,6 +55,21 @@ class ExpressionConverter(cTypes: HashMap[String, String]) extends ChainListener
     left + visit(ctx.castExpression())
   }
   
+  override def visitLogicalAndExpression(ctx: CParser.LogicalAndExpressionContext) = {
+    val left = if (ctx.logicalAndExpression() != null ) visit(ctx.logicalAndExpression()) + " " + ctx.children.get(1).getText + " " else ""
+    left + visit(ctx.inclusiveOrExpression())
+  }
+  
+  override def visitInclusiveOrExpression(ctx: CParser.InclusiveOrExpressionContext) = {
+    val left = if (ctx.inclusiveOrExpression() != null ) visit(ctx.inclusiveOrExpression()) + " " + ctx.children.get(1).getText + " " else ""
+    left + visit(ctx.exclusiveOrExpression())
+  }
+  
+  override def visitLogicalOrExpression(ctx: CParser.LogicalOrExpressionContext) = {
+    val left = if (ctx.logicalOrExpression() != null ) visit(ctx.logicalOrExpression()) + " " + ctx.children.get(1).getText + " " else ""
+    left + visit(ctx.logicalAndExpression())
+  }
+  
   override def visitRelationalExpression(ctx: CParser.RelationalExpressionContext) = {
     val left = if (ctx.relationalExpression() != null ) visit(ctx.relationalExpression()) + " " + ctx.children.get(1).getText + " " else ""
     left + visit(ctx.shiftExpression())
@@ -63,6 +78,16 @@ class ExpressionConverter(cTypes: HashMap[String, String]) extends ChainListener
   override def visitEqualityExpression(ctx: CParser.EqualityExpressionContext) = {
     val left = if (ctx.equalityExpression() != null ) visit(ctx.equalityExpression()) + " " + ctx.children.get(1).getText + " " else ""
     left + visit(ctx.relationalExpression())
+  }
+  
+  override def visitAndExpression(ctx: CParser.AndExpressionContext) = {
+    val left = if (ctx.andExpression() != null ) visit(ctx.andExpression()) + " " + ctx.children.get(1).getText + " " else ""
+    left + visit(ctx.equalityExpression())
+  }
+  
+  override def visitShiftExpression(ctx: CParser.ShiftExpressionContext) = {
+    val left = if (ctx.shiftExpression() != null ) visit(ctx.shiftExpression()) + " " + ctx.children.get(1).getText + " " else ""
+    left + visit(ctx.additiveExpression())
   }
   
   override def visitUnaryExpression(ctx: CParser.UnaryExpressionContext) = {

@@ -125,4 +125,23 @@ class Function extends FlatSpec with ShouldMatchers {
   "A simple IF statement" should "convert correctly" in {
     convertedToScala("int blah() {if (1 == 1) x = 2; else x = 3;}").head should equal("def blah(): Int = {if (1 == 1) x = 2 else x = 3}")
   }
+  
+  "A more complex IF statement" should "convert correctly" in {
+    convertedToScala("int blah() {if ((1 == 1) && (2 > 1)) x = 2; else x = 3;}").head should equal("def blah(): Int = {if ((1 == 1) && (2 > 1)) x = 2 else x = 3}")
+  }
+  
+  "A more complex IF statement2" should "convert correctly" in {
+    convertedToScala("int blah() {if (1 == 1);}").head should equal("def blah(): Int = {if (1 == 1)}")
+    convertedToScala("int blah() {if (1 && 1);}").head should equal("def blah(): Int = {if (1 && 1)}")
+    convertedToScala("int blah() {if (1 & 1);}").head should equal("def blah(): Int = {if (1 & 1)}")
+    convertedToScala("int blah() {if (1 || 1);}").head should equal("def blah(): Int = {if (1 || 1)}")
+    convertedToScala("int blah() {if (1 | 1);}").head should equal("def blah(): Int = {if (1 | 1)}")
+    convertedToScala("int blah() {if (1 > 1);}").head should equal("def blah(): Int = {if (1 > 1)}")
+    convertedToScala("int blah() {if (1 < 1);}").head should equal("def blah(): Int = {if (1 < 1)}")
+    convertedToScala("int blah() {if (1 >= 1);}").head should equal("def blah(): Int = {if (1 >= 1)}")
+    convertedToScala("int blah() {if (1 <= 1);}").head should equal("def blah(): Int = {if (1 <= 1)}")
+    convertedToScala("int blah() {if (!1 == 1);}").head should equal("def blah(): Int = {if (!1 == 1)}")
+    convertedToScala("int blah() {if (1 >> 1 > 1);}").head should equal("def blah(): Int = {if (1 >> 1 > 1)}")
+    convertedToScala("int blah() {if (1 << 1 > 1);}").head should equal("def blah(): Int = {if (1 << 1 > 1)}")
+  }
 }

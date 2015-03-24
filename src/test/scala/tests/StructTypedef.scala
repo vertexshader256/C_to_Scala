@@ -99,7 +99,10 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
   
   
   "A simple typedef with a pointer" should "convert correctly" in {
-    val test = "typedef struct { LATLON lat; LATLON *lon;} LL;"
+    val test = """typedef struct {
+                    LATLON lat;
+                    LATLON *lon;
+                  } LL;"""
     
     convertedToScala(test) should equal(Array("class LL {",
                                               "var lat: LATLON = null",
