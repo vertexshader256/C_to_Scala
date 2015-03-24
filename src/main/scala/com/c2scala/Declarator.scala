@@ -104,10 +104,10 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
     if (isArray) {
         if (initializer != "") {
           initializer
-        } else if (!directDeclarators.isEmpty) {
+        } else if (!directDeclarators.isEmpty && latestArraySize != "") {
           showDec(directDeclarators.toList, typeName)
         } else {
-          ""
+          "null"
         }
       } else {
         // e.g "float x,y,z;"
@@ -142,7 +142,6 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   }
   
   override def visitDeclarator(ctx: CParser.DeclaratorContext) = {
-    
     val isFunctionProto = Try(ctx.directDeclarator.parameterTypeList != null).getOrElse(false)
     
     if (!isFunctionProto) {
@@ -171,12 +170,9 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
       }
     
       if (!ctx.parent.isInstanceOf[CParser.InitDeclaratorContext]) {
-        val init = formInitializer()
         results += "var " + convertTypeName(varNames.head, typeName) + ": " +
-          (if (isArray && latestArraySize != "") {
-              "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = " + init
-          } else if (isArray) {
-              "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
+          (if (isArray) {
+              "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = " + formInitializer()
           })
       }
     }
