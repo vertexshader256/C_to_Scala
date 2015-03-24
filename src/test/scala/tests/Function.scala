@@ -70,6 +70,14 @@ class Function extends FlatSpec with ShouldMatchers {
     convertedToScala("LAT blah(long x) {LATLON i;}").head should equal("def blah(x: Long): LAT = {var i: LATLON = null}")
   }
   
+  "A simple function with double contents" should "convert correctly" in {
+    convertedToScala("LAT blah(long x) {double i;}").head should equal("def blah(x: Long): LAT = {var i: Double = 0.0}")
+  }
+  
+  "A simple function with resolved custom contents" should "convert correctly" in {
+    convertedToScala("typedef LATLON double; LAT blah(long x) {LATLON i;}").tail should equal("def blah(x: Long): LAT = {var i: LATLON = 0.0}")
+  }
+  
   "A simple function with an assignment operator" should "convert correctly" in {
     convertedToScala("int blah(long x) {x += y;}").head should equal("def blah(x: Long): Int = {x += y}")
   }
@@ -130,18 +138,14 @@ class Function extends FlatSpec with ShouldMatchers {
     convertedToScala("int blah() {if ((1 == 1) && (2 > 1)) x = 2; else x = 3;}").head should equal("def blah(): Int = {if ((1 == 1) && (2 > 1)) x = 2 else x = 3}")
   }
   
-  "A more complex IF statement2" should "convert correctly" in {
-    convertedToScala("int blah() {if (1 == 1);}").head should equal("def blah(): Int = {if (1 == 1)}")
-    convertedToScala("int blah() {if (1 && 1);}").head should equal("def blah(): Int = {if (1 && 1)}")
-    convertedToScala("int blah() {if (1 & 1);}").head should equal("def blah(): Int = {if (1 & 1)}")
-    convertedToScala("int blah() {if (1 || 1);}").head should equal("def blah(): Int = {if (1 || 1)}")
-    convertedToScala("int blah() {if (1 | 1);}").head should equal("def blah(): Int = {if (1 | 1)}")
-    convertedToScala("int blah() {if (1 > 1);}").head should equal("def blah(): Int = {if (1 > 1)}")
-    convertedToScala("int blah() {if (1 < 1);}").head should equal("def blah(): Int = {if (1 < 1)}")
-    convertedToScala("int blah() {if (1 >= 1);}").head should equal("def blah(): Int = {if (1 >= 1)}")
-    convertedToScala("int blah() {if (1 <= 1);}").head should equal("def blah(): Int = {if (1 <= 1)}")
-    convertedToScala("int blah() {if (!1 == 1);}").head should equal("def blah(): Int = {if (!1 == 1)}")
-    convertedToScala("int blah() {if (1 >> 1 > 1);}").head should equal("def blah(): Int = {if (1 >> 1 > 1)}")
-    convertedToScala("int blah() {if (1 << 1 > 1);}").head should equal("def blah(): Int = {if (1 << 1 > 1)}")
+  "boolean expressons" should "convert correctly" in {
+    
+    val operators = List("==", "&&", "&", "||", "|", ">", "<", ">=", "<=", "==", ">>", "<<")
+    
+    for (op <- operators) {
+      val test = "int blah() {if (1 " + op + " 1);}"
+      val result = "def blah(): Int = {if (1 " + op + " 1)}"
+      convertedToScala(test).head should equal(result)
+    }
   }
 }
