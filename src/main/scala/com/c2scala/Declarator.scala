@@ -49,12 +49,12 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
   var latestArraySize = ""
   var latestDeclaratorValue = ""
   
-  def showDec(declList: List[String]): String = {
+  private def showDec(declList: List[String], typeName: String): String = {
     if (!declList.isEmpty) {
       if (declList.size > 1) {
-        "Array.fill(" + declList.head + ")(" + showDec(declList.tail) + ")"
+        "Array.fill(" + declList.head + ")(" + showDec(declList.tail, typeName) + ")"
       } else {
-        "Array.fill(" + declList.head + ")(null)"
+        "Array.fill(" + declList.head + ")(" + getDefault(cTypes, typeName) + ")"
       }
     } else {
       ""
@@ -68,13 +68,67 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
     level -= 1
   }
   
-  def parseSimpleDecl2() = {
-    results += "var " + convertTypeName(varNames.head, typeName) + ": " +
-    (if (isArray && latestArraySize != "") {
-        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = Array.fill(" + latestArraySize + ")(" + getDefault(cTypes, currentTypeSpec.getText) + ")"
-    } else if (isArray) {
-        "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
-    })
+  def getInitializer(): String = {
+    if (isArray) {
+      if (initializer != null) {
+        initializer
+      } else if (!directDeclarators.isEmpty) {
+        showDec(directDeclarators.toList, typeName)
+      } else {
+        ""
+      }
+    } else {
+
+      // e.g "float x,y,z;"
+      if (varNames.size > 1) {
+        "(" + varNames.zipWithIndex.map{ case (decl, index) =>
+          postProcessValue(if (index < myExplicitInitValues.size) {
+            myExplicitInitValues(index)
+          } else {
+            getDefault(cTypes, typeName)
+          }, typeName)
+        }.reduce(_ + ", " + _) + ")"
+      } else if ((varNames.size == 1) && typeName != "") {
+        postProcessValue(myExplicitInitValues(0), typeName)
+      } else {
+        if (currentTypeSpec != null) {
+            postProcessValue(getDefault(cTypes, typeName), typeName)
+        } else {
+          "null"
+        }
+      }
+    }  
+  }
+  
+  def formInitializer(): String = {
+    if (isArray) {
+        if (initializer != "") {
+          initializer
+        } else if (!directDeclarators.isEmpty) {
+          showDec(directDeclarators.toList, typeName)
+        } else {
+          ""
+        }
+      } else {
+        // e.g "float x,y,z;"
+        if (varNames.size > 1) {
+          "(" + varNames.zipWithIndex.map{ case (decl, index) =>
+            postProcessValue(if (index < myExplicitInitValues.size) {
+              myExplicitInitValues(index)
+            } else {
+              getDefault(cTypes, currentTypeSpec.getText)
+            }, typeName)
+          }.reduce(_ + ", " + _) + ")"
+        } else if ((varNames.size == 1) && typeName != "") {
+          postProcessValue(myExplicitInitValues(0), typeName)
+        } else {
+          if (currentTypeSpec != null) {
+              postProcessValue(getDefault(cTypes, currentTypeSpec.getText), currentTypeSpec.getText)
+          } else {
+            "null"
+          }
+        }
+      }
   }
   
   override def visitInitDeclarator(ctx: CParser.InitDeclaratorContext) = {
@@ -82,36 +136,8 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
     val isFunctionProto = Try(ctx.declarator.directDeclarator.parameterTypeList != null)
     
     if (level == 0 && !isFunctionProto.getOrElse(false)) {
-
-      val init = if (isArray) {
-        if (ctx.initializer() != null) {
-          initializer
-        } else if (!directDeclarators.isEmpty) {
-          showDec(directDeclarators.toList)
-        }
-      } else {
-  
-        // e.g "float x,y,z;"
-        if (varNames.size > 1) {
-          "(" + varNames.zipWithIndex.map{ case (decl, index) =>
-            postProcessValue(if (index < myExplicitInitValues.size) {
-              myExplicitInitValues(index)
-            } else {
-              getDefault(cTypes, typeName)
-            }, typeName)
-          }.reduce(_ + ", " + _) + ")"
-        } else if ((varNames.size == 1) && typeName != "") {
-          postProcessValue(myExplicitInitValues(0), typeName)
-        } else {
-          if (currentTypeSpec != null) {
-              postProcessValue(getDefault(cTypes, typeName), typeName)
-          } else {
-            "null"
-          }
-        }
-      }
       
-      results += latestDeclaratorValue + " = " + init
+      results += latestDeclaratorValue + " = " + formInitializer
     }
   }
   
@@ -145,7 +171,13 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
       }
     
       if (!ctx.parent.isInstanceOf[CParser.InitDeclaratorContext]) {
-        parseSimpleDecl2()
+        val init = formInitializer()
+        results += "var " + convertTypeName(varNames.head, typeName) + ": " +
+          (if (isArray && latestArraySize != "") {
+              "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = " + init
+          } else if (isArray) {
+              "Array[" + translateTypeSpec(currentTypeSpec) + "]" + " = null"
+          })
       }
     }
   }
@@ -192,14 +224,14 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
     
       if (isArray) {
         if (ctx.assignmentExpression() != null) {
-          directDeclarators += ctx.assignmentExpression().getText
+          directDeclarators += latestArraySize
         } else {
           directDeclarators += ctx.getText
         }
         varNames += ctx.getText
       } else if (ctx.assignmentExpression() != null) {
         isArray = true
-        directDeclarators += ctx.assignmentExpression().getText
+        directDeclarators += latestArraySize
       } else {
           varNames += ctx.getText
       } 
