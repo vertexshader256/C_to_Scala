@@ -118,8 +118,10 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
             postProcessValue(getDefault(cTypes, currentTypeSpec.getText), typeName)
           }
         }.reduce(_ + ", " + _) + ")"
-      } else {
+      } else if (!initializerValues.isEmpty) {
         postProcessValue(initializerValues(0), typeName)
+      } else {
+        ""
       }
     }
   }

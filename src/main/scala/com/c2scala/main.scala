@@ -144,11 +144,11 @@ object main {
       
       beforePreprocessingDir.listFiles.foreach(_.delete)
       
-      val cTypes = HashMap[String, String]()
+      
       
       for (file <- preprocessedDir.listFiles) {
 
-
+          val cTypes = HashMap[String, String]()
             val parser = new CParser(
             new CommonTokenStream(
             new CLexer(new ANTLRFileStream(file.getAbsolutePath))));
@@ -161,9 +161,6 @@ object main {
             val visitor = new DeclarationConverter(cTypes, false);
             visitor.visit(ctx)
       }
-      
-      println("WHOA: " + cTypes.size)
-      cTypes.foreach(println)
       
       preprocessedDir.listFiles.foreach(_.delete)
       
@@ -261,6 +258,7 @@ object main {
       runGcc.delete
       
       for (file <- extractedDir.listFiles) { 
+        val cTypes = HashMap[String, String]()
         //val name = file.getName.reverse.drop(2).reverse
         val postFile = new File(postprocessedDir.getAbsolutePath + "\\" + file.getName)
         val pw = new java.io.PrintWriter(postFile)
@@ -283,7 +281,7 @@ object main {
         
         // This line prints the error
         val ctx = parser.compilationUnit();
-        val visitor = new DeclarationConverter(cTypes, false);
+        val visitor = new DeclarationConverter(cTypes, true);
         visitor.visit(ctx)
 
         println("RESULTS: ")
