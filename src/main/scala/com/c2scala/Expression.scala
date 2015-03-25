@@ -16,7 +16,7 @@ import org.antlr.v4.runtime.tree.TerminalNode
     Some math expression stuff
  *********************************************************/
 
-class ExpressionConverter(cTypes: HashMap[String, String]) extends ChainListener[String](cTypes) {
+class ExpressionConverter(cTypes: HashMap[String, String], typeName: String) extends ChainListener[String](cTypes) {
   var assignmentExpression = ""
   var assignmentOperator = ""
   var unaryExpression = ""
@@ -38,7 +38,7 @@ class ExpressionConverter(cTypes: HashMap[String, String]) extends ChainListener
   }
   
   override def visitPrimaryExpression(ctx: CParser.PrimaryExpressionContext) = {
-    if (ctx.expression() != null) "(" + super.visitPrimaryExpression(ctx) + ")" else super.visitPrimaryExpression(ctx)
+    if (ctx.expression() != null) "(" + super.visitPrimaryExpression(ctx) + ")" else postProcessValue(ctx.getText, typeName)
   }
   
   override def visitAdditiveExpression(ctx: CParser.AdditiveExpressionContext) = {

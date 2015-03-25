@@ -58,7 +58,7 @@ class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[
   }
   
   override def visitSelectionStatement(ctx: CParser.SelectionStatementContext) = {
-    selectionStatement = "if (" + new ExpressionConverter(cTypes).visitExpression(ctx.expression()) + ") " + new StatementConverter(cTypes).visit(ctx.statement.get(0)).statement
+    selectionStatement = "if (" + new ExpressionConverter(cTypes, "bool").visitExpression(ctx.expression()) + ") " + new StatementConverter(cTypes).visit(ctx.statement.get(0)).statement
     if (ctx.statement.size > 1) {
       selectionStatement += " else " + new StatementConverter(cTypes).visit(ctx.statement.get(1)).statement
     }
@@ -66,7 +66,7 @@ class StatementConverter(cTypes: HashMap[String, String]) extends ChainListener[
   }
   
   override def visitExpression(ctx: CParser.ExpressionContext) = {
-    expression = new ExpressionConverter(cTypes).visitExpression(ctx)
+    expression = new ExpressionConverter(cTypes, "bool").visitExpression(ctx)
     null
   }
 

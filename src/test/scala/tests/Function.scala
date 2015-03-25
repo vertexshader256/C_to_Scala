@@ -75,7 +75,7 @@ class Function extends FlatSpec with ShouldMatchers {
   }
   
   "A simple function with resolved custom contents" should "convert correctly" in {
-    convertedToScala("typedef LATLON double; LAT blah(long x) {LATLON i;}").tail should equal("def blah(x: Long): LAT = {var i: LATLON = 0.0}")
+    convertedToScala("typedef double LATLON; LAT blah(long x) {LATLON i;}").last should equal("def blah(x: Long): LAT = {var i: LATLON = 0.0}")
   }
   
   "A simple function with an assignment operator" should "convert correctly" in {
@@ -140,11 +140,17 @@ class Function extends FlatSpec with ShouldMatchers {
   
   "boolean expressons" should "convert correctly" in {
     
-    val operators = List("==", "&&", "&", "||", "|", ">", "<", ">=", "<=", "==", ">>", "<<")
+    val operators = List("==", "&&", "&", "||", "|", ">", "<", ">=", "<=", ">>", "<<")
     
     for (op <- operators) {
       val test = "int blah() {if (1 " + op + " 1);}"
       val result = "def blah(): Int = {if (1 " + op + " 1)}"
+      convertedToScala(test).head should equal(result)
+    }
+    
+    for (op <- operators) {
+      val test = "int x = 1 " + op + " 1;"
+      val result = "var x: Int = 1 " + op + " 1"
       convertedToScala(test).head should equal(result)
     }
   }
