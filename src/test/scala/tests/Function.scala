@@ -78,9 +78,7 @@ class Function extends FlatSpec with ShouldMatchers {
     convertedToScala("typedef double LATLON; LAT blah(long x) {LATLON i;}").last should equal("def blah(x: Long): LAT = {var i: LATLON = 0.0}")
   }
   
-  "A simple function with an assignment operator" should "convert correctly" in {
-    convertedToScala("int blah(long x) {x += y;}").head should equal("def blah(x: Long): Int = {x += y}")
-  }
+  
   
   "A simple function with an two assignment operators" should "convert correctly" in {
     convertedToScala("int blah(long x) {x += y; x += z;}").head should equal("def blah(x: Long): Int = {x += y; x += z}")
@@ -153,5 +151,21 @@ class Function extends FlatSpec with ShouldMatchers {
       val result = "var x: Int = 1 " + op + " 1"
       convertedToScala(test).head should equal(result)
     }
+  }
+  
+  "assignment operators" should "convert correctly" in {
+    
+    val operators = List("=", "/=", "%=", "<<=", "*=", ">>=", "^=", "+=", "-=", "&=", "|=")
+    
+    for (op <- operators) {
+      val test = "int blah() {x " + op + " 1;}"
+      val result = "def blah(): Int = {x " + op + " 1}"
+      convertedToScala(test).head should equal(result)
+    }
+  }
+  
+  
+  "A simple function with an assignment operator" should "convert correctly" in {
+    convertedToScala("int blah(long x) {x += y;}").head should equal("def blah(x: Long): Int = {x += y}")
   }
 }
