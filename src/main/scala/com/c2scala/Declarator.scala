@@ -145,11 +145,10 @@ class DeclaratorConverter(cTypes: HashMap[String, String], typeName: String, lat
       } else if ((latestStorageSpecifier == "" || latestStorageSpecifier == "static")) {
   
       // e.g "float x,y,z;"
-        if (varNames.size > 1) {
-          val decl = "(" + varNames.map(_ + ": " + typeName).reduce(_ + ", " + _) + ")"
-          qualifier + " " + decl
-        } else if (varNames.size == 1) {
-          qualifier + " " + varNames(0) + ": " + typeName
+        if (!varNames.isEmpty) {
+          val decl = varNames.map(_ + ": " + typeName).reduce(_ + ", " + _)
+          val withParen = if (varNames.size > 1) "(" + decl + ")" else decl
+          qualifier + " " + withParen
         } else {
           if (currentTypeSpec != null) {
               qualifier + " " + convertTypeName(latestStructDecName, typeName) + ": " + typeName
