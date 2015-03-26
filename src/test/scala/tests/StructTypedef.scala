@@ -1,7 +1,6 @@
 package tests
 
 import org.scalatest._
-import reflect.runtime.universe._
 
 class StructTypedef extends FlatSpec with ShouldMatchers {
 
@@ -90,26 +89,26 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
                     LATLON lat[((2048))] ;
                     LATLON lon ;
                   } LL;"""
-
-     assert(convertedToScalaTree(test) equalsStructure 
-     q"""class LL { 
+    
+    val result = """class LL { 
            var lat: Array[LATLON] = Array.fill(2048)(null)
            var lon: LATLON = null
-         }""")
+         }"""
+
+     assert(test ==> result)
   }
-  
-  
-  
+
   "A simple typedef with a pointer" should "convert correctly" in {
     val test = """typedef struct {
                     LATLON lat;
                     LATLON *lon;
                   } LL;"""
-
-    assert(convertedToScalaTree(test) equalsStructure 
-     q"""class LL { 
+    
+    val result = """class LL { 
            var lat: LATLON = null
            var lon: Array[LATLON] = null
-         }""")
+         }"""
+
+    assert(test ==> result)
   }
 }

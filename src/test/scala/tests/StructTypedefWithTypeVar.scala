@@ -10,9 +10,11 @@ class StructTypedefWithTypeVar extends FlatSpec with ShouldMatchers {
   val test = """typedef struct {
                   OBSTACLE_TYPE type;
                 } POINT_OBSTACLE;"""
+  
+  val result = """class POINT_OBSTACLE {
+                  var obstacle_type: OBSTACLE_TYPE = null
+                }"""
     
-    convertedToScala(test) should equal(Array("class POINT_OBSTACLE {",
-                                              "var obstacle_type: OBSTACLE_TYPE = null",
-                                              "}"))
+    assert(test ==> result)
   }
 }

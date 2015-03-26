@@ -1,7 +1,6 @@
 package tests
 
 import org.scalatest._
-import reflect.runtime.universe._
 
 class Statement extends FlatSpec with ShouldMatchers {
 

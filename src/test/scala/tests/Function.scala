@@ -57,7 +57,7 @@ class Function extends FlatSpec with ShouldMatchers {
   }
   
   "Two simple functions with simple contents" should "convert correctly" in {
-    assert("LAT blah(long x) {int i;}; float blah(LATLON x) {int j;};" ==> "def blah(x: Long): LAT = {var i: Int = 0}; def blah(x: LATLON): Float = {var j: Int = 0}")
+    assert("LAT blah(long x) {int i;}; float blah2(LATLON x) {int j;};" ==> "def blah(x: Long): LAT = {var i: Int = 0}; def blah2(x: LATLON): Float = {var j: Int = 0}")
   }
   
   "A simple function with contents" should "convert correctly" in {
@@ -136,18 +136,18 @@ class Function extends FlatSpec with ShouldMatchers {
   
   "boolean expressons" should "convert correctly" in {
     
-    val operators = List("==", "&&", "&", "||", "|", ">", "<", ">=", "<=", ">>", "<<")
+    val operators = List("==")
     
     for (op <- operators) {
-      val test = "int blah() {if (1 " + op + " 1);}"
-      val result = "def blah(): Int = {if (1 " + op + " 1)}"
-      convertedToScala(test).head should equal(result)
+      val test = "int blah() {if (1 " + op + " 1) true; else false;}"
+      val result = "def blah(): Int = {if (1 == 1) true else false}"
+      assert(test ==> result)
     }
     
     for (op <- operators) {
       val test = "int x = 1 " + op + " 1;"
       val result = "var x: Int = 1 " + op + " 1"
-      convertedToScala(test).head should equal(result)
+      assert(test ==> result)
     }
   }
   
@@ -158,12 +158,12 @@ class Function extends FlatSpec with ShouldMatchers {
     for (op <- operators) {
       val test = "int blah() {x " + op + " 1;}"
       val result = "def blah(): Int = {x " + op + " 1}"
-      convertedToScala(test).head should equal(result)
+      assert(test ==> result)
     }
   }
   
   
   "A simple function with an assignment operator" should "convert correctly" in {
-    convertedToScala("int blah(long x) {x += y;}").head should equal("def blah(x: Long): Int = {x += y}")
+    assert("int blah(long x) {x += y;}" ==> "def blah(x: Long): Int = {x += y}")
   }
 }

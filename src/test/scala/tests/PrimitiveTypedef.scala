@@ -4,27 +4,27 @@ import org.scalatest._
 
 class PrimitiveTypedefInt extends FlatSpec with ShouldMatchers {
   "A simple typedef conversion" should "convert correctly" in {
-    convertedToScala("typedef int LATLON;").head should equal("type LATLON = Int")
+    assert("typedef int LATLON;" ==> "type LATLON = Int")
   }
   
   "A simple unsigned typedef conversion" should "convert correctly" in {
-    convertedToScala("typedef unsigned int LATLON;").head should equal("type LATLON = Int")
+    assert("typedef unsigned int LATLON;" ==> "type LATLON = Int")
   }
   
   "A simple signed typedef conversion" should "convert correctly" in {
-    convertedToScala("typedef signed int LATLON;").head should equal("type LATLON = Int")
+    assert("typedef signed int LATLON;" ==> "type LATLON = Int")
   }
 }
 
 class PrimitiveTypedefShort extends FlatSpec with ShouldMatchers {
   "A simple typedef conversion" should "convert correctly" in {
-    convertedToScala("typedef short LATLON;").head should equal("type LATLON = Short")
+    assert("typedef short LATLON;" ==> "type LATLON = Short")
   }
 }
 
 class PrimitiveTypedefFloat extends FlatSpec with ShouldMatchers {
   "A simple typedef conversion" should "convert correctly" in {
-    convertedToScala("typedef float LATLON;").head should equal("type LATLON = Float")
+    assert("typedef float LATLON;" ==> "type LATLON = Float")
   }
 }
 

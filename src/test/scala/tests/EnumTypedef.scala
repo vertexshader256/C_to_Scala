@@ -55,12 +55,13 @@ class EnumTypedef extends FlatSpec with ShouldMatchers {
                     SQUARE_TYPE,
                     OVAL_TYPE
                   } OBSTACLE_TYPE;"""
+    
+    val result = """type OBSTACLE_TYPE = Int
+                    val LINE_TYPE: OBSTACLE_TYPE = 0
+                    val POINT_TYPE: OBSTACLE_TYPE = LINE_TYPE
+                    val SQUARE_TYPE: OBSTACLE_TYPE = 1
+                    val OVAL_TYPE: OBSTACLE_TYPE = 2"""
 
-    convertedToScala(test) should equal(Array("type OBSTACLE_TYPE = Int",
-                                                                       "val LINE_TYPE: OBSTACLE_TYPE = 0",
-                                                                       "val POINT_TYPE: OBSTACLE_TYPE = LINE_TYPE",
-                                                                       "val SQUARE_TYPE: OBSTACLE_TYPE = 1",
-                                                                       "val OVAL_TYPE: OBSTACLE_TYPE = 2"
-                                                                       ))
+    assert(test ==> result)
   }
 }
