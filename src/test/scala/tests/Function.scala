@@ -76,8 +76,6 @@ class Function extends FlatSpec with ShouldMatchers {
     assert("typedef double LATLON; LAT blah(long x) {LATLON i;}" ==> "type LATLON = Double; def blah(x: Long): LAT = {var i: LATLON = 0.0}")
   }
   
-  
-  
   "A simple function with an two assignment operators" should "convert correctly" in {
     assert("int blah(long x) {x += y; x += z;}" ==> "def blah(x: Long): Int = {x += y; x += z}")
   }
@@ -94,7 +92,7 @@ class Function extends FlatSpec with ShouldMatchers {
     assert("int blah(long x) {x = z - 2 + y / 4 * u;}" ==> "def blah(x: Long): Int = {x = z - 2 + y / 4 * u}")
   }
   
-  "A simple function with a struct assignment" should "convert correctly" in {
+  "A function with a struct assignment" should "convert to a class assignment" in {
     assert("int blah() {x.test = 2;}" ==> "def blah(): Int = {x.test = 2}")
   }
   
@@ -106,7 +104,7 @@ class Function extends FlatSpec with ShouldMatchers {
     assert("int blah(long x) {x = z - 2 + y->x / 4 * u;}" ==> "def blah(x: Long): Int = {x = z - 2 + y.x / 4 * u}")
   }
   
-  "A simple function with parenthesis" should "convert correctly" in {
+  "A function containing an expression with parenthesis" should "convert, keeping the parenthesis" in {
     assert("int blah(long x) {x = (z - 2) + (y / 4) * u;}" ==> "def blah(x: Long): Int = {x = (z - 2) + (y / 4) * u}")
   }
   

@@ -13,9 +13,9 @@ class StructTypedefWithPrimitive extends FlatSpec with ShouldMatchers {
                   } LL;"""
     
     val result = """class LL {
-                    var lat: Int = 0
-                    var lon: Int = 0
-                  }"""
+                      var lat: Int = 0
+                      var lon: Int = 0
+                    }"""
     
     assert(test ==> result)
   }

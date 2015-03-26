@@ -5,7 +5,7 @@ import reflect.runtime.universe._
 
 class SimpleTypedef extends FlatSpec with ShouldMatchers {
 
-  "A simple typedef conversion" should "convert correctly" in {
+  "A typedef with 2 simple arguments" should "swap order before becoming a type alias" in {
 
     assert("typedef S32 LATLON;" ==> "type LATLON = S32")
   }

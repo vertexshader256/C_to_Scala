@@ -44,11 +44,11 @@ class Statement extends FlatSpec with ShouldMatchers {
     assert("int blah[1][2];" ==> "var blah: Array[Array[Int]] = Array.fill(1)(Array.fill(2)(0))")
   }
   
-  "A 2d array with an array initializer" should "convert correctly" in {
+  "A 2d array with an array initializer" should "be converted to nested arrays" in {
     assert("int blah[2][2] = {{1,2},{3,4}};" ==> "var blah: Array[Array[Int]] = Array(Array(1,2),Array(3,4))")
   }
   
-  "Another simple statement with an 2d array" should "convert correctly" in {
+  "A 1d array with an array initializer" should "be converted to an array" in {
     assert("int blah[2] = {1,2};" ==> "var blah: Array[Int] = Array(1,2)")
   }
   
@@ -60,7 +60,7 @@ class Statement extends FlatSpec with ShouldMatchers {
     assert("float x, y;" ==> "var (x: Float, y: Float) = (0.0f, 0.0f)")
   }
   
-  "Four variables of a primitive type being simultaneously declared" should "convert correctly" in {
+  "Four variables of primitive float type being simultaneously declared" should "be all set to initial floating point defaults" in {
     assert("float x, y, r, s;" ==> "var (x: Float, y: Float, r: Float, s: Float) = (0.0f, 0.0f, 0.0f, 0.0f)")
   }
   
