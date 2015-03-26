@@ -12,9 +12,11 @@ class StructTypedefWithPrimitive extends FlatSpec with ShouldMatchers {
                     int lon ;
                   } LL;"""
     
-    convertedToScala(test) should equal(Array("class LL {",
-                                              "var lat: Int = 0",
-                                              "var lon: Int = 0",
-                                              "}"))
+    val result = """class LL {
+                    var lat: Int = 0
+                    var lon: Int = 0
+                  }"""
+    
+    assert(test ==> result)
   }
 }

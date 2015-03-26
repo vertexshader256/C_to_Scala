@@ -36,6 +36,12 @@ package object tests {
       visitor.results.toList.flatMap{_.split("\n").map(_.trim)}.toArray
   }
   
+  implicit class Upgraded(x: String) {
+    def ==>(y: String) = {
+       convertedToScalaTree(x) equalsStructure toolbox.parse(y)
+    }
+  }
+  
   def convertedToScalaTree(text: String): toolbox.u.Tree = {   
     
       val parser = new CParser(

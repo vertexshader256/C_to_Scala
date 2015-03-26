@@ -17,34 +17,33 @@ import reflect.runtime.universe._
 class EnumTypedef extends FlatSpec with ShouldMatchers {
 
   "A simple enum typedef" should "convert correctly" in {
-    val name = System.nanoTime
-    
     val test = """typedef enum {
                     LINE_TYPE  = 0x00000001,
                     POINT_TYPE = 0x00000002
                   } OBSTACLE_TYPE;"""
 
-    assert(convertedToScalaTree(test) equalsStructure 
-     q"""type OBSTACLE_TYPE = Int;
-         val LINE_TYPE: OBSTACLE_TYPE = 0x00000001;
-         val POINT_TYPE: OBSTACLE_TYPE = 0x00000002;
-         """)
+    val expected = """type OBSTACLE_TYPE = Int;
+                      val LINE_TYPE: OBSTACLE_TYPE = 0x00000001;
+                      val POINT_TYPE: OBSTACLE_TYPE = 0x00000002;
+                    """
+    
+    assert(test ==> expected)
   }
   
   "A simple enum typedef with implicit numbering" should "convert correctly" in {
-    val name = System.nanoTime
-    
     val test = """typedef enum {
                     LINE_TYPE  = 0,
                     POINT_TYPE = LINE_TYPE,
                     SQUARE_TYPE
                   } OBSTACLE_TYPE;"""
 
-    convertedToScala(test) should equal(Array("type OBSTACLE_TYPE = Int",
-                                                                       "val LINE_TYPE: OBSTACLE_TYPE = 0",
-                                                                       "val POINT_TYPE: OBSTACLE_TYPE = LINE_TYPE",
-                                                                       "val SQUARE_TYPE: OBSTACLE_TYPE = 1"
-                                                                       ))
+    val expected = """type OBSTACLE_TYPE = Int;
+                      val LINE_TYPE: OBSTACLE_TYPE = 0;
+                      val POINT_TYPE: OBSTACLE_TYPE = LINE_TYPE;
+                      val SQUARE_TYPE: OBSTACLE_TYPE = 1;
+                    """
+    
+    assert(test ==> expected)
   }
   
   "A complex enum typedef with implicit numbering" should "convert correctly" in {

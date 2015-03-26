@@ -7,6 +7,6 @@ class SimpleTypedef extends FlatSpec with ShouldMatchers {
 
   "A simple typedef conversion" should "convert correctly" in {
 
-    assert(convertedToScalaTree("typedef S32 LATLON;") equalsStructure q"type LATLON = S32")
+    assert("typedef S32 LATLON;" ==> "type LATLON = S32")
   }
 }

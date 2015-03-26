@@ -1,7 +1,6 @@
 package tests
 
 import org.scalatest._
-import reflect.runtime.universe._
 
 class PrimitiveTypedefInt extends FlatSpec with ShouldMatchers {
   "A simple typedef conversion" should "convert correctly" in {
@@ -31,14 +30,14 @@ class PrimitiveTypedefFloat extends FlatSpec with ShouldMatchers {
 
 class PrimitiveTypedefLong extends FlatSpec with ShouldMatchers {
   "A simple typedef conversion" should "convert correctly" in {
-    assert(convertedToScalaTree("typedef long LATLON;") equalsStructure q"type LATLON = Long")
+    assert("typedef long LATLON;" ==> "type LATLON = Long")
   }
   
   "A simple unsigned typedef conversion" should "convert correctly" in {
-    assert(convertedToScalaTree("typedef unsigned long LATLON;") equalsStructure q"type LATLON = Long")
+    assert("typedef unsigned long LATLON;" ==> "type LATLON = Long")
   }
   
   "A simple signed typedef conversion" should "convert correctly" in {
-    assert(convertedToScalaTree("typedef signed long LATLON;") equalsStructure q"type LATLON = Long")
+    assert("typedef signed long LATLON;" ==> "type LATLON = Long")
   }
 }
