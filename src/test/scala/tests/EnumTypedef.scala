@@ -12,6 +12,7 @@ import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.CommonTreeAdaptor;
 import org.antlr.runtime.tree.TreeAdaptor;
 import org.antlr.runtime.Token;
+import reflect.runtime.universe._
 
 class EnumTypedef extends FlatSpec with ShouldMatchers {
 
@@ -23,10 +24,11 @@ class EnumTypedef extends FlatSpec with ShouldMatchers {
                     POINT_TYPE = 0x00000002
                   } OBSTACLE_TYPE;"""
 
-    convertedToScala(test) should equal(Array("type OBSTACLE_TYPE = Int",
-                                                                       "val LINE_TYPE: OBSTACLE_TYPE = 0x00000001",
-                                                                       "val POINT_TYPE: OBSTACLE_TYPE = 0x00000002"
-                                                                       ))
+    assert(convertedToScalaTree(test) equalsStructure 
+     q"""type OBSTACLE_TYPE = Int;
+         val LINE_TYPE: OBSTACLE_TYPE = 0x00000001;
+         val POINT_TYPE: OBSTACLE_TYPE = 0x00000002;
+         """)
   }
   
   "A simple enum typedef with implicit numbering" should "convert correctly" in {

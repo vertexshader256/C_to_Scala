@@ -1,6 +1,7 @@
 package tests
 
 import org.scalatest._
+import reflect.runtime.universe._
 
 class StructTypedef extends FlatSpec with ShouldMatchers {
 
@@ -89,11 +90,12 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
                     LATLON lat[((2048))] ;
                     LATLON lon ;
                   } LL;"""
-    
-    convertedToScala(test) should equal(Array("class LL {",
-                                              "var lat: Array[LATLON] = Array.fill(2048)(null)",
-                                              "var lon: LATLON = null",
-                                              "}"))
+
+     assert(convertedToScalaTree(test) equalsStructure 
+     q"""class LL { 
+           var lat: Array[LATLON] = Array.fill(2048)(null)
+           var lon: LATLON = null
+         }""")
   }
   
   
@@ -103,10 +105,11 @@ class StructTypedef extends FlatSpec with ShouldMatchers {
                     LATLON lat;
                     LATLON *lon;
                   } LL;"""
-    
-    convertedToScala(test) should equal(Array("class LL {",
-                                              "var lat: LATLON = null",
-                                              "var lon: Array[LATLON] = null",
-                                              "}"))
+
+    assert(convertedToScalaTree(test) equalsStructure 
+     q"""class LL { 
+           var lat: LATLON = null
+           var lon: Array[LATLON] = null
+         }""")
   }
 }
